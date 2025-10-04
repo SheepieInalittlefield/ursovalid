@@ -1,44 +1,42 @@
-sort BarrierStatus = struct open | close;
-MovingStatus = struct down | up | stable;
-LightStatus = struct green | red;
-  
-act sendBarrierStatus, receiveBarrierStatus, commBarrierStatus,
-    sendBarrierCommand, receiveBarrierCommand,
-    commBarrierCommand: BarrierStatus;
-    greenLight, redLight, startOpen, barrierOpen, startClose,
-    barrierClosed, barrierOpened, trainArrived, trainPassed;
+sort PlaneRequest = struct land | leave;
+PlaneResponse = struct hold | redirect;
+LocStatus = struct out_of_order | operational;
+Location = struct gate1 | gate2 | taxiway | runway;
+Plane = struct one | two | three | four | five;
 
-proc Barrier(status: BarrierStatus, moving: MovingStatus) =
-    sendBarrierStatus(status) . Barrier()
-    + sum request: BarrierStatus.
-        receiveBarrierCommand(request).
-        ((request == close && status == open)
-        -> startClose.Barrier(moving = down)
-        <> (request == open && status == close)
-        -> startOpen.Barrier(moving = up)
-        <> Barrier()
-        )
-    + (moving == down)
-    -> barrierClosed.Barrier(status = close, moving = stable)
-    + (moving == up)
-    -> barrierOpened.Barrier(status = open, moving = stable);
+%receiveRequest(P, R) 
+%sendResponse(P, R) 
+%assign(L, P ) 
+%unassign(L, P )
+%getSensorUpdate(L, P) 
+%getLocStatus(L, S )
 
-proc Crossing(light: LightStatus, trainWaiting: Bool) =
-    (!trainWaiting)
-    -> trainArrived.Crossing(trainWaiting = true)
-    + (trainWaiting)
-    -> sum status: BarrierStatus.receiveBarrierStatus(status).
-        ((status == close)
-        -> greenLight.Crossing(light = green)
-        <> sendBarrierCommand(close) . Crossing())
-    + (trainWaiting && light == green)
-    -> trainPassed.redLight.
-        sendBarrierCommand(open).
-        Crossing(light = red, trainWaiting = false);
+act receiveRequest: Plane # PlaneRequest; 
+sendResponse: Plane # PlaneResponse;
+assign: Location # Plane;
+unassign: Location # Plane;
+getSensorUpdate: Location # Plane;
+getLocStatus: Location # LocStatus;
 
-init allow( { commBarrierCommand, commBarrierStatus, greenLight,
-              redLight, startOpen, barrierOpened, startClose,
-              barrierClosed, trainPassed, trainArrived },
-           comm( { sendBarrierStatus|receiveBarrierStatus -> commBarrierStatus,
-                   sendBarrierCommand|receiveBarrierCommand -> commBarrierCommand },
-                 Crossing(red, false) || Barrier(open, stable)));
+act sendLocationStatus, receiveLocationStatus, commLocationStatus: LocStatus;
+
+proc Assignments(loc: Location, plane: Plane) = 
+	assign(loc, plane);
+
+
+proc Communications(loc: Location, plane: Plane) = 
+	assign(loc, plane);
+
+proc LocationTracking(loc: Location, plane: Plane) = 
+	assign(loc, plane);
+
+init allow( 
+	% initial actions
+	{ receiveRequest, getSensorUpdate, getLocStatus },
+	comm( 
+		% communication
+		{ sendLocationStatus|receiveLocationStatus -> commLocationStatus },
+		% process initialization
+		Assignments(runway, three) || Communications(gate1, two) || LocationTracking(taxiway, four)
+	)
+);
