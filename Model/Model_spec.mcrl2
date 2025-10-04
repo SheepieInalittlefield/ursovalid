@@ -1,41 +1,44 @@
 sort BarrierStatus = struct open | close;
 MovingStatus = struct down | up | stable;
 LightStatus = struct green | red;
+  
 act sendBarrierStatus, receiveBarrierStatus, commBarrierStatus,
-sendBarrierCommand, receiveBarrierCommand,
-commBarrierCommand: BarrierStatus;
-greenLight, redLight, startOpen, barrierOpen, startClose,
-barrierClosed, barrierOpened, trainArrived, trainPassed;
-proc Barrier(status:BarrierStatus, moving:MovingStatus) =
-sendBarrierStatus(status) . Barrier() +
-sum request:BarrierStatus.
-receiveBarrierCommand(request).
-((request == close && status == open)
--> startClose.Barrier(moving = down)
-<> (request == open && status == close)
--> startOpen.Barrier(moving = up)
-<> Barrier()
-) +
-(moving == down)
--> barrierClosed.Barrier(status=close, moving=stable) +
-(moving == up)
--> barrierOpened.Barrier(status=open, moving=stable);
-Crossing(light:LightStatus, trainWaiting:Bool) =
-(!trainWaiting)
--> trainArrived.Crossing(trainWaiting = true) +
-(trainWaiting)
--> sum status:BarrierStatus.receiveBarrierStatus(status).
-((status == close)
--> greenLight.Crossing(light=green)
-<> sendBarrierCommand(close) . Crossing()) +
-(trainWaiting && light==green)
--> trainPassed.redLight.
-sendBarrierCommand(open).
-Crossing(light=red, trainWaiting=false);
+    sendBarrierCommand, receiveBarrierCommand,
+    commBarrierCommand: BarrierStatus;
+    greenLight, redLight, startOpen, barrierOpen, startClose,
+    barrierClosed, barrierOpened, trainArrived, trainPassed;
+
+proc Barrier(status: BarrierStatus, moving: MovingStatus) =
+    sendBarrierStatus(status) . Barrier()
+    + sum request: BarrierStatus.
+        receiveBarrierCommand(request).
+        ((request == close && status == open)
+        -> startClose.Barrier(moving = down)
+        <> (request == open && status == close)
+        -> startOpen.Barrier(moving = up)
+        <> Barrier()
+        )
+    + (moving == down)
+    -> barrierClosed.Barrier(status = close, moving = stable)
+    + (moving == up)
+    -> barrierOpened.Barrier(status = open, moving = stable);
+
+proc Crossing(light: LightStatus, trainWaiting: Bool) =
+    (!trainWaiting)
+    -> trainArrived.Crossing(trainWaiting = true)
+    + (trainWaiting)
+    -> sum status: BarrierStatus.receiveBarrierStatus(status).
+        ((status == close)
+        -> greenLight.Crossing(light = green)
+        <> sendBarrierCommand(close) . Crossing())
+    + (trainWaiting && light == green)
+    -> trainPassed.redLight.
+        sendBarrierCommand(open).
+        Crossing(light = red, trainWaiting = false);
+
 init allow( { commBarrierCommand, commBarrierStatus, greenLight,
-redLight, startOpen, barrierOpened, startClose,
-barrierClosed, trainPassed, trainArrived },
-comm( { sendBarrierStatus|receiveBarrierStatus -> commBarrierStatus,
-sendBarrierCommand|receiveBarrierCommand ->
-commBarrierCommand },
-Crossing(red, false) || Barrier(open, stable)));
+              redLight, startOpen, barrierOpened, startClose,
+              barrierClosed, trainPassed, trainArrived },
+           comm( { sendBarrierStatus|receiveBarrierStatus -> commBarrierStatus,
+                   sendBarrierCommand|receiveBarrierCommand -> commBarrierCommand },
+                 Crossing(red, false) || Barrier(open, stable)));
