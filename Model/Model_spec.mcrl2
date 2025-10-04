@@ -4,24 +4,16 @@ LocStatus = struct out_of_order | operational;
 Location = struct gate1 | gate2 | taxiway | runway;
 Plane = struct one | two | three | four | five;
 
-%receiveRequest(P, R) 
-%sendResponse(P, R) 
-%assign(L, P ) 
-%unassign(L, P )
-%getSensorUpdate(L, P) 
-%getLocStatus(L, S )
-
 act receiveRequest: Plane # PlaneRequest; 
 sendResponse: Plane # PlaneResponse;
 assign: Location # Plane;
 unassign: Location # Plane;
 getSensorUpdate: Location # Plane;
 getLocStatus: Location # LocStatus;
-
-act sendLocationStatus, receiveLocationStatus, commLocationStatus: LocStatus;
+sendLocationStatus, receiveLocationStatus, commLocationStatus: LocStatus;
 
 proc Assignments(loc: Location, plane: Plane) = 
-	assign(loc, plane);
+	sum P : Plane . sum R : PlaneRequest . receiveRequest(P, R) . assign(runway, P);
 
 
 proc Communications(loc: Location, plane: Plane) = 
@@ -32,11 +24,12 @@ proc LocationTracking(loc: Location, plane: Plane) =
 
 init allow( 
 	% initial actions
-	{ receiveRequest, getSensorUpdate, getLocStatus },
+	{ receiveRequest, getSensorUpdate, getLocStatus, assign, commLocationStatus },
 	comm( 
 		% communication
 		{ sendLocationStatus|receiveLocationStatus -> commLocationStatus },
 		% process initialization
-		Assignments(runway, three) || Communications(gate1, two) || LocationTracking(taxiway, four)
+		Assignments(runway, three)
+% || Communications(gate1, two) || LocationTracking(taxiway, four)
 	)
 );
