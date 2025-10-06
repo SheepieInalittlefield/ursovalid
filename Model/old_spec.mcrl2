@@ -1,0 +1,84 @@
+sort PlaneRequest = struct land | leave;
+PlaneResponse = struct hold | redirect;
+LocStatus = struct out_of_order | operational;
+Location = struct gate1 | gate2 | taxiway | runway;
+%Plane = struct one | two | three | four | five;
+Plane = struct one | two;
+
+
+act receiveRequest: Plane # PlaneRequest; 
+sendResponse: Plane # PlaneResponse;
+assign: Location # Plane;
+unassign: Location # Plane;
+getSensorUpdate: Location # Plane;
+getLocStatus: Location # LocStatus;
+sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocStatus;
+sendPlaneRequest, receivePlaneRequest, commPlaneRequest: Plane # PlaneRequest;
+sendPlaneResponse, receivePlaneResponse, commPlaneResponse: Plane # PlaneResponse;
+sendAssStatus, receiveAssStatus, commAssStatus: Location # Bool;
+sendHelpRequest, receiveHelpRequest, commHelpRequest;
+contactHelp;
+
+proc Assignments(assignmentStatus: Location -> Bool) = (
+    receiveHelpRequest . sendHelpRequest
+	+ sum R : PlaneRequest . (
+        sum P : Plane . (
+            receivePlaneRequest(P, R)
+            . (R == land) -> ( 
+                assign(runway, P)
+                . sendAssStatus(runway, true) 
+                . sendAssStatus(taxiway, false)
+                . Assignments(assignmentStatus = (assignmentStatus[runway->true][taxiway->false]))
+            )
+            <> (
+                assign(taxiway, P) 
+                . sendAssStatus(taxiway, true) 
+                . sendAssStatus(gate1, false)
+                . Assignments(assignmentStatus = (assignmentStatus[taxiway->true][gate1->false]))
+            )
+        )
+    )
+);
+
+proc Communications = 
+	sum P : Plane
+		. sum R : PlaneRequest 
+			.  receiveRequest(P, R) 
+			.  sendPlaneRequest(P, R) 
+			.  Communications
+	+ receiveHelpRequest . contactHelp. Communications;
+
+proc LocationTracking(occupiedStatus: Location -> Plane, locationStatus: Location -> LocStatus, assignmentStatus: Location -> Bool) = 
+	% Location tracking should:
+	%	Send Location Status updates to assignments
+	%	Send for help if a plane is in a location without a prior assignment, or if that location is out of order.
+	sum L: Location, S:LocStatus
+		. getLocStatus(L, S)
+		. sendLocationStatus(L, S)
+		. LocationTracking(locationStatus = (locationStatus[L->S]))
+	+ sum L: Location, P: Plane
+		. getSensorUpdate(L, P)
+		. (assignmentStatus(L) == true) -> 
+			LocationTracking(occupiedStatus = (occupiedStatus[L->P]))
+		<> sendHelpRequest . LocationTracking()
+	+ sum L: Location, B: Bool
+		. receiveAssStatus(L, B)
+		. LocationTracking(assignmentStatus = (assignmentStatus[L->B]));
+
+init allow( 
+	% initial actions
+	{ receiveRequest, assign, unassign, getSensorUpdate, getLocStatus, sendResponse, contactHelp, commPlaneRequest, commPlaneResponse, commAssStatus, commLocationStatus, commHelpRequest},
+	comm( 
+		% communication
+		{ 
+			sendLocationStatus|receiveLocationStatus -> commLocationStatus,
+			sendPlaneRequest|receivePlaneRequest -> commPlaneRequest,
+			sendPlaneResponse|receivePlaneResponse -> commPlaneResponse,
+			sendAssStatus|receiveAssStatus -> commAssStatus,
+			sendHelpRequest|receiveHelpRequest -> commHelpRequest
+		},
+		% process initialization
+		Assignments(lambda l: Location.true) || Communications || LocationTracking(lambda l: Location.one,lambda k: Location.operational, lambda j: Location.false)
+		%|| LocationTracking(taxiway, four)
+	)
+);
