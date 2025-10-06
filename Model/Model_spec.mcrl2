@@ -13,7 +13,12 @@ getSensorUpdate: Location # Plane;
 getLocStatus: Location # LocStatus;
 sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocStatus;
 sendAssignment, receiveAssignment, commAssignment: Location # Plane;
+
+sendTWSensorUpdate, receiveTWSensorUpdate, commTWSensorUpdate: Location # Plane;
+sendRWSensorUpdate, receiveRWSensorUpdate, commRWSensorUpdate: Location # Plane;
+
 contactHelp;
+print: Location;
 
 
 % Assigned = true when assign occurs, and false when unassign occurs.
@@ -78,50 +83,135 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 	) 
 );
 
-proc Runway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+proc Roadway(road: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
 	% runway has been assigned to a plane by central
 	sum P: Plane . (
-		receiveAssignment(runway, P)
-		. Runway(is_assigned = true, assigned_to = P)
+		receiveAssignment(road, P)
+		% . Roadway(is_assigned = true, assigned_to = P)
+		. Roadway(road, true, P, is_occupied, status)
 	)
 	% runway has become out of order or been repaired
 	+ sum S: LocStatus . (
-		getLocStatus(runway, S)
-		. sendLocationStatus(runway, S)
-		. Runway(status = S)
+		getLocStatus(road, S)
+		. sendLocationStatus(road, S)
+		. Roadway(road, is_assigned, assigned_to, is_occupied, S)
 	)
 	% sensor update from runway
-	+ sum P: Plane, L: Location . (
-		getSensorUpdate(L, P)
-		% plane on runway
-		. (L == runway) -> (
-			(is_assigned == false || !(assigned_to == P)) -> (
-				% unexpected plane
-				contactHelp 
-				% situation handled :)
-				. Runway()
-			) <> (
-				% expected plane
-				Runway(is_occupied = true)
+	+ sum P: Plane . (
+		((road == runway) -> (
+			% sum P: Plane . (
+				receiveTWSensorUpdate(runway, P)
+				% plane has left the runway
+				. (is_assigned && P == assigned_to && is_occupied == true) -> (
+					unassign(road, P)
+					. Roadway(road,false, one, false, status)
+				) <> (
+				% otherwise, irrelevant
+				Roadway(road, is_assigned, assigned_to, is_occupied, status)
 			)
-		% plane somewhere else
-		) <> (is_assigned && P == assigned_to) -> (
-			% plane has left the runway
-			unassign(runway, P)
-			. Runway(is_assigned = false, assigned_to = one, is_occupied = false)
+		) <> (road == taxiway) -> (
+			% sum P: Plane . (
+				receiveRWSensorUpdate(taxiway, P)
+				% plane has left the taxiway
+				. (is_assigned && P == assigned_to && is_occupied == true) -> (
+					unassign(road, P)
+					. Roadway(road, false, one, false, status)
+				) <> (
+				% otherwise, irrelevant
+				Roadway(road, is_assigned, assigned_to, is_occupied, status)
+			)
+		)) + (getSensorUpdate(road, P)
+		% plane on runway
+		% . (L == road) -> (
+		. (is_assigned == false || !(assigned_to == P)) -> (
+			% unexpected plane
+			contactHelp 
+			% situation handled :)
+			. Roadway(road, is_assigned, assigned_to, is_occupied, status)
 		) <> (
-			% plane is somewhere else, runway unaffected
-		Runway()
-		)
+			% expected plane
+			% let neighbors know
+			(road == runway) -> (
+				% receiveTWSensorUpdate(runway, P)
+				(sendRWSensorUpdate(taxiway, P)
+				. Roadway(road, is_assigned, assigned_to, true, status))
+				+ (receiveTWSensorUpdate(runway, P)
+				. (is_assigned && P == assigned_to && is_occupied == true) -> (
+					unassign(road, P)
+					. Roadway(road, false, one, false, status)
+				) <> (
+				% otherwise, irrelevant
+				Roadway(road, is_assigned, assigned_to, is_occupied, status)
+			)
+				)
+
+				% . receiveTWSensorUpdate(runway, P)
+				% + (receiveTWSensorUpdate(runway, P)
+				% % plane has left the runway
+				% . (is_assigned && P == assigned_to) -> (
+				% 	unassign(road, P)
+				% 	% . Roadway(is_assigned = false, assigned_to = one, is_occupied = false)
+				% )  . sendRWSensorUpdate(taxiway, P))
+
+			) <> (road == taxiway) -> (
+				% sendTWSensorUpdate(runway, P)
+				% + sendTWSensorUpdate(gate1, P)
+				% + sendTWSensorUpdate(gate2, P)
+				% receiveRWSensorUpdate(taxiway, P)
+				% . (is_assigned && P == assigned_to && is_occupied) -> (
+					% unassign(road, P)
+				% . Roadway(is_assigned = false, assigned_to = one, is_occupied = false)
+				% )22
+				(sendTWSensorUpdate(runway, P)
+				. Roadway(road, is_assigned, assigned_to, true, status))
+				+ (receiveRWSensorUpdate(taxiway, P)
+				. (is_assigned && P == assigned_to && is_occupied == true) -> (
+					unassign(road, P)
+					. Roadway(road, false, one, false, status)
+				) <> (
+				% otherwise, irrelevant
+				Roadway(road, is_assigned, assigned_to, is_occupied, status)
+			)
+				)
+
+				% + (receiveRWSensorUpdate(taxiway, P)
+				% % plane has left the taxiway
+				% . (is_assigned && P == assigned_to) -> (
+				% 	unassign(road, P)
+				% 	% . Roadway(is_assigned = false, assigned_to = one, is_occupied = false)
+				% )  . sendTWSensorUpdate(runway, P))
+			)
+		))
 	)
+	% + (road == runway) -> (
+	% 	sum P: Plane . (
+	% 		receiveTWSensorUpdate(runway, P)
+	% 		% plane has left the runway
+	% 		. (is_assigned && P == assigned_to) -> (
+	% 			unassign(road, P)
+	% 			. Roadway(is_assigned = false, assigned_to = one, is_occupied = false)
+	% 		)
+	% 		% otherwise, irrelevant
+	% 	)
+	% ) <> (road == taxiway) -> (
+	% 	sum P: Plane . (
+	% 		receiveRWSensorUpdate(taxiway, P)
+	% 		% plane has left the taxiway
+	% 		. (is_assigned && P == assigned_to) -> (
+	% 			unassign(road, P)
+	% 			. Roadway(is_assigned = false, assigned_to = one, is_occupied = false)
+	% 		)
+	% 		% otherwise, irrelevant
+	% 	)
+	% )
 );
 
-proc Taxiway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-	sum P: Plane . (
-		receiveAssignment(taxiway, P)
-		. Taxiway(is_assigned = true, assigned_to = P)
-	)
-);
+% proc Taxiway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+% 	sum P: Plane . (
+% 		receiveAssignment(taxiway, P)
+% 		. Taxiway(is_assigned = true, assigned_to = P)
+% 	)
+% );
 
 proc Gate_1(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
 	sum P: Plane . (
@@ -139,17 +229,23 @@ proc Gate_2(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: Lo
 
 init allow( 
 	% initial actions
-	{ receiveRequest, sendResponse, assign, unassign, getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, commAssignment},
+	{ receiveRequest, sendResponse, assign, unassign, 
+	getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, 
+	commAssignment, commTWSensorUpdate, commRWSensorUpdate, print },
 	comm( 
 		% communication
 		{ 
 			sendLocationStatus|receiveLocationStatus -> commLocationStatus,
-			sendAssignment|receiveAssignment -> commAssignment
+			sendAssignment|receiveAssignment -> commAssignment,
+			sendTWSensorUpdate|receiveTWSensorUpdate -> commTWSensorUpdate,
+			sendRWSensorUpdate|receiveRWSensorUpdate -> commRWSensorUpdate
 		},
 		% process initialization
 		Communications(lambda l: Location.operational, lambda i: Location.false)
-			|| Runway(false, one, false, operational) 
-			|| Taxiway(false, one, false, operational) 
+			|| Roadway(runway, false, one, false, operational) 
+			|| Roadway(taxiway, false, one, false, operational) 
+
+			% || Taxiway(false, one, false, operational) 
 			|| Gate_1(false, one, false, operational) 
 			|| Gate_2(false, one, false, operational)
 		%|| LocationTracking(taxiway, four)
