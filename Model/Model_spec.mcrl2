@@ -2,7 +2,9 @@ sort PlaneRequest = struct land | leave;
 PlaneResponse = struct hold | redirect;
 LocStatus = struct out_of_order | operational;
 Location = struct gate1 | gate2 | taxiway | runway;
-Plane = struct one | two | three | four | five;
+%Plane = struct one | two | three | four | five;
+Plane = struct one | two;
+
 
 act receiveRequest: Plane # PlaneRequest; 
 sendResponse: Plane # PlaneResponse;
@@ -11,25 +13,44 @@ unassign: Location # Plane;
 getSensorUpdate: Location # Plane;
 getLocStatus: Location # LocStatus;
 sendLocationStatus, receiveLocationStatus, commLocationStatus: LocStatus;
+sendPlaneRequest, receivePlaneRequest, commPlaneRequest: Plane # PlaneRequest;
+sendPlaneResponse, receivePlaneResponse, commPlaneResponse: Plane # PlaneResponse;
+sendAssStatus, receiveAssStatus, commAssStatus: Location # Bool;
 
-proc Assignments(loc: Location, plane: Plane) = 
-	sum P : Plane . sum R : PlaneRequest . receiveRequest(P, R) . assign(runway, P);
+proc Assignments(assignmentStatus: Location -> Bool) = 
+	sum R : PlaneRequest
+		. sum P : Plane 
+			. receivePlaneRequest(P, R)
+			. (R == land) -> 
+				assign(runway, P)
+				. sendAssStatus(runway, true) 
+				. sendAssStatus(taxiway, false)
+				. Assignments(assignmentStatus = (assignmentStatus[runway->true][taxiway->false]))
+			<> 
+				assign(taxiway, P) 
+				. sendAssStatus(taxiway, true) 
+				. sendAssStatus(gate1, false)
+				. Assignments(assignmentStatus = (assignmentStatus[taxiway->true][gate1->false]));
 
 
-proc Communications(loc: Location, plane: Plane) = 
-	assign(loc, plane);
+proc Communications(loc: Location) = 
+	sum P : Plane . sum R : PlaneRequest . receiveRequest(P, R) . sendPlaneRequest(P, R) . Communications();
 
 proc LocationTracking(loc: Location, plane: Plane) = 
 	assign(loc, plane);
 
 init allow( 
 	% initial actions
-	{ receiveRequest, getSensorUpdate, getLocStatus, assign, commLocationStatus },
+	{ receiveRequest, assign, commPlaneRequest },
 	comm( 
 		% communication
-		{ sendLocationStatus|receiveLocationStatus -> commLocationStatus },
+		{ 
+			sendLocationStatus|receiveLocationStatus -> commLocationStatus,
+			sendPlaneRequest|receivePlaneRequest -> commPlaneRequest,
+			sendPlaneResponse|receivePlaneResponse -> commPlaneResponse
+		},
 		% process initialization
-		Assignments(runway, three)
-% || Communications(gate1, two) || LocationTracking(taxiway, four)
+		Assignments(lambda l: Location.false) || Communications(gate1) 
+		%|| LocationTracking(taxiway, four)
 	)
 );
