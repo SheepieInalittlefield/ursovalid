@@ -182,17 +182,20 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 		) <> (loc == gate2 && is_assigned && assigned_to == P && is_occupied) -> (
 			sendAssignment(gate2, P, false)
 			. Loc(is_assigned=false, is_occupied=false)
-		) 
-	)
-	+ sum S: LocStatus . (
-		getLocStatus(loc, S)
-		. (S != status) -> (
-			sendLocationStatus(loc, S)
-			. Loc(status = S)
 		) <> (
+			% dont care didnt ask
 			Loc()
 		)
 	)
+	% + sum S: LocStatus . (
+	% 	getLocStatus(loc, S)
+	% 	. (S != status) -> (
+	% 		sendLocationStatus(loc, S)
+	% 		. Loc(status = S)
+	% 	) <> (
+	% 		Loc()
+	% 	)
+	% )
 );
 
 % proc Taxiway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
@@ -230,9 +233,10 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 % );
 
 init 
-	hide({
-	commUnlockMutex,commLockMutex
-	},
+	% hide(
+		% {
+	% commUnlockMutex,commLockMutex
+	% },
 	allow( 
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
@@ -260,5 +264,5 @@ init
 				|| Mutex(runway) || Mutex(taxiway) || Mutex(gate1) || Mutex(gate2)
 
 		)
-	)
+	% )
 );

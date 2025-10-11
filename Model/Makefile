@@ -2,6 +2,11 @@
 # Makefile for building the mCRL2 model
 
 nproc := $(shell nproc)
+
+# PROPERTY_FILE := properties/landing_plane_reaches_gate.mcf
+PROPERTY_FILE := "properties/No deadlocks.mcf"
+
+
 # Usage:
 #   make quercus.lps
 #   mcrl2lps -lregular2 Model_spec.mcrl2 qu
@@ -15,7 +20,7 @@ all:
 
 # 	lps2lts -v --threads=$(nproc) quercus.lps quercus.lts
 # 	ltsconvert -v -ebranching-bisim quercus.lts quercus.lts
-	lps2pbes -v --counter-example -fproperties/req1.mcf quercus.lps quercus.pbes
+	lps2pbes -v --counter-example -f$(PROPERTY_FILE) quercus.lps quercus.pbes
 	pbessolve quercus.pbes --search-strategy=breadth-first --solve-strategy=0 --verbose --threads=$(nproc) -Q0 --file=quercus.lps --evidence-file=quercus.evidence.lps
 
 # 	pbessolve";
