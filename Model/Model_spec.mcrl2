@@ -5,6 +5,8 @@ Location = struct gate1 | gate2 | taxiway | runway | air;
 %Plane = struct one | two | three | four | five;
 Plane = struct one | two;
 
+MutexType = struct mLocation | mAssignment | mOutOfOrder;
+
 act receiveRequest: Plane # PlaneRequest;
 sendResponse: Plane # PlaneResponse;
 assign: Location # Plane;
@@ -17,6 +19,35 @@ sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocSta
 sendAssignment, receiveAssignment, commAssignment: Location # Plane;
 sendTWSensorUpdate, receiveTWSensorUpdate, commTWSensorUpdate: Location # Plane;
 sendRWSensorUpdate, receiveRWSensorUpdate, commRWSensorUpdate: Location # Plane;
+
+lockMutex, receiveLockMutex, commLockMutex: MutexType;
+unlockMutex, receiveUnlockMutex, commUnlockMutex: MutexType;
+waitCondVar, receiveWaitCondVar, commWaitCondVar: MutexType;
+signalCondVar, receiveSignalCondVar, commSignalCondVar: MutexType;
+
+proc Mutex(type: MutexType) = (
+	(
+		receiveLockMutex(type)
+		. receiveUnlockMutex(type)
+		. Mutex(type)
+	) + (
+		receiveUnlockMutex(type)
+		. Mutex(type)
+	)
+);
+
+proc CondVar(type: MutexType) = (
+	(
+		receiveWaitCondVar(type)
+		. receiveSignalCondVar(type)
+		. CondVar(type)
+	) + (
+		signalCondVar(type)
+		. CondVar(type)
+	)
+);
+
+% proc CondVar
 
 % Assigned = true when assign occurs, and false when unassign occurs.
 proc ProcessComms(locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool) = (
@@ -37,12 +68,12 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 			. Communications()
 		)
 		<> (R == land) -> (
-			assign(runway, P)
-			. (
+			% assign(runway, P)
+			(
 				sendAssignment(runway, P)
 				+ ProcessComms(locationStatus, occupiedStatus) . sendAssignment(runway, P)
 			) % make sure not stuck waiting
-			. assign(taxiway, P)
+			% . assign(taxiway, P)
 			. ( sendAssignment(taxiway, P)
 				+ ProcessComms(locationStatus, occupiedStatus) . sendAssignment(taxiway, P)
 			) 
@@ -61,8 +92,8 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 				. Communications(occupiedStatus = (occupiedStatus[runway->true][taxiway->true][gate2->true]))	
 		)
 		<> (R == leave) -> (
-			assign(runway, P)
-			. ( sendAssignment(runway, P)
+			% assign(runway, P)
+			( sendAssignment(runway, P)
 				+ ProcessComms(locationStatus, occupiedStatus) . sendAssignment(runway, P)
 			)
 			. assign(taxiway, P)
@@ -106,12 +137,16 @@ proc Roadway(road: Location, is_assigned: Bool, assigned_to: Plane, is_occupied:
 	% runway has been assigned to a plane by central
 	sum P: Plane . (
 		receiveAssignment(road, P)
+		. assign(road, P)
 		. Roadway(road, true, P, is_occupied, status)
 	)
 	% runway has become out of order or been repaired
 	+ sum S: LocStatus . (
 		getLocStatus(road, S)
+		% .lockMutex(mLocation) 
 		. sendLocationStatus(road, S)
+		% . unlockMutex(mLocation)
+		. waitCondVar(mOutOfOrder)
 		. Roadway(road, is_assigned, assigned_to, is_occupied, S)
 	)
 	% received some sensor info from other location
@@ -160,7 +195,9 @@ init allow(
 			sendLocationStatus|receiveLocationStatus -> commLocationStatus,
 			sendAssignment|receiveAssignment -> commAssignment,
 			sendTWSensorUpdate|receiveTWSensorUpdate -> commTWSensorUpdate,
-			sendRWSensorUpdate|receiveRWSensorUpdate -> commRWSensorUpdate
+			sendRWSensorUpdate|receiveRWSensorUpdate -> commRWSensorUpdate,
+			lockMutex|receiveLockMutex -> commLockMutex,
+			unlockMutex|receiveUnlockMutex -> commUnlockMutex
 		},
 		% process initialization
 		Communications(lambda l: Location.operational, lambda i: Location.false)
@@ -168,5 +205,8 @@ init allow(
 			|| Roadway(taxiway, false, one, false, operational) 
 			|| Gate_1(false, one, false, operational) 
 			|| Gate_2(false, one, false, operational)
+			|| Mutex(mOutOfOrder)
+			|| CondVar(mOutOfOrder)
+
 	)
 );
