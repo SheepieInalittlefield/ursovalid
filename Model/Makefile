@@ -3,8 +3,8 @@
 
 nproc := $(shell nproc)
 
-# PROPERTY_FILE := properties/landing_plane_reaches_gate.mcf
-PROPERTY_FILE := "properties/No deadlocks.mcf"
+PROPERTY_FILE := properties/landing_plane_reaches_taxiway.mcf
+# PROPERTY_FILE := "properties/Gate1 can always get another sensor update from plane 1.mcf"
 
 
 # Usage:
@@ -18,19 +18,15 @@ all:
 # 	lpsconstelm -v quercus.lps quercus.lps
 # 	lpssuminst -v quercus.lps quercus.lps
 
+#	# LTS ROUTE!
 # 	lps2lts -v --threads=$(nproc) quercus.lps quercus.lts
 # 	ltsconvert -v -ebranching-bisim quercus.lts quercus.lts
-	lps2pbes -v --counter-example -f$(PROPERTY_FILE) quercus.lps quercus.pbes
-	pbessolve quercus.pbes --search-strategy=breadth-first --solve-strategy=0 --verbose --threads=$(nproc) -Q0 --file=quercus.lps --evidence-file=quercus.evidence.lps
+# 	lts2pbes -v --counter-example -f$(PROPERTY_FILE) quercus.lts quercus.pbes
+# 	pbessolve quercus.pbes --search-strategy=breadth-first -v --threads=$(nproc) -Q0 --file=quercus.lts --evidence-file=quercus.evidence.lts
 
-# 	pbessolve";
-#     inputFile = fileSystem->pbesFilePath(property.name, evidence);
-#     arguments << inputFile << "--in=pbes"
-#               << "--search-strategy=breadth-first"
-#               << "--solve-strategy=0"
-#               << "--verbose"
-#               << "--threads=" + QString::number(QThread::idealThreadCount())
-#               << QString("-Q") + std::to_string(fileSystem->enumerationLimit()).c_str();
+	lps2pbes -v -c -f$(PROPERTY_FILE) quercus.lps quercus.pbes
+	pbessolve quercus.pbes --search-strategy=breadth-first -v --threads=$(nproc) -Q0 --file=quercus.lps --evidence-file=quercus.evidence.lps
+
 graph: 
 	lps2lts quercus.evidence.lps quercus.evidence.lts
 	ltsgraph quercus.evidence.lts

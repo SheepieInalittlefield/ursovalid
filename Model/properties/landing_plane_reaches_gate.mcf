@@ -1,4 +1,2 @@
 forall P: Plane .
-    [receiveRequest(P, land) .!assign(runway, P)]
-        mu X . 
-            ( <true>true && [ !(assign(gate1, P) || assign(gate2, P) ) ] X )
+    [true* . receiveRequest(P, land) . !assign(runway, P)* . assign(runway, P)]<true* . assign(gate1, P) || assign(gate2, P)>true

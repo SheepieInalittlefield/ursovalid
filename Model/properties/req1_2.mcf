@@ -1,0 +1,2 @@
+forall L: Location, P,Q: Plane . 
+    [true* . assign(L, P) . !unassign(L, P) . assign(L, Q)]val(P == Q)

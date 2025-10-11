@@ -35,6 +35,14 @@ proc Mutex(t: Location) = (
 % 	% . assign(location, plane)
 % );
 
+proc ProcessCommComms(locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location, planeDir: Plane -> PlaneDir) = (
+	sum L: Location, S: LocStatus . (
+		% got unassigment update
+		receiveLocationStatus(L, S)
+		. Communications(locationStatus[L->S], occupiedStatus, planeLocation, planeDir)
+	)
+);
+
 proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location, planeDir: Plane -> PlaneDir) = (
 	sum P: Plane, R: PlaneRequest . (
 		receiveRequest(P, R)
@@ -48,8 +56,14 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 			% DoAssignment(runway, P)
 			sendAssignment(runway, P, true)
 			. Communications(occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
+			+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+			. sendAssignment(runway, P, true)
+			. Communications(occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
         ) <> (R == leave && ((planeLocation(P) == gate1) || (planeLocation(P) == gate2)) && occupiedStatus(taxiway) == false) -> (
 			sendAssignment(taxiway, P, true)
+			. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
+			+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+			. sendAssignment(taxiway, P, true)
 			. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
 		) <> (
 			sendResponse(P, postedcringe)
@@ -72,8 +86,13 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 		) + (
 			% plane assigned to taxiway has arrived
 			receiveSensorUpdate(taxiway, air, P)
-			. sendAssignment(gate1, P, true)
-			. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+			. (occupiedStatus(gate1) == false) -> (
+				sendAssignment(gate1, P, true)
+				. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+			) <> (occupiedStatus(gate1) == true) -> (
+				sendAssignment(gate2, P, true)
+				. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
+			)
 		) + (
 			% plane assigned to gate1 has arrived
 			receiveSensorUpdate(gate1, air, P)
@@ -187,56 +206,25 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			Loc()
 		)
 	)
-	% + sum S: LocStatus . (
-	% 	getLocStatus(loc, S)
-	% 	. (S != status) -> (
-	% 		sendLocationStatus(loc, S)
-	% 		. Loc(status = S)
-	% 	) <> (
-	% 		Loc()
-	% 	)
-	% )
+	+ sum S: LocStatus . (
+		% lockMutex(loc)
+		getLocStatus(loc, S)
+		. (S != status) -> (
+			sendLocationStatus(loc, S)
+			% . unlockMutex(loc)
+			. Loc(status = S)
+		) <> (
+			% unlockMutex(loc)
+			Loc()
+		)
+	)
 );
 
-% proc Taxiway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-%     % taxiway has been assigned to a plane by central
-% 	sum P: Plane . (
-% 		receiveAssignment(taxiway, P)
-% 		. Taxiway(true, P, is_occupied, status)
-% 	)
-% 	+ sum P: Plane . (
-% 		getSensorUpdate(taxiway, P)
-% 		. (is_assigned == false || !(assigned_to == P)) -> (
-% 			contactHelp 
-% 			. Taxiway()
-% 		) <> (
-% 			sendSensorUpdate(taxiway, air, P)
-% 			. Taxiway(is_assigned, assigned_to, true, status)
-% 		)
-% 	)
-% );
-
-
-% proc Gate_1(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-% 	sum P: Plane . (
-% 		receiveAssignment(gate1, P)
-% 		. Gate_1(is_assigned = true, assigned_to = P)
-% 	)
-% );
-
-
-% proc Gate_2(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-% 	sum P: Plane . (
-% 		receiveAssignment(gate1, P)
-% 		. Gate_2(is_assigned = true, assigned_to = P)
-% 	)
-% );
-
 init 
-	% hide(
-		% {
-	% commUnlockMutex,commLockMutex
-	% },
+	hide(
+		{
+	commUnlockMutex,commLockMutex
+	},
 	allow( 
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
@@ -264,5 +252,5 @@ init
 				|| Mutex(runway) || Mutex(taxiway) || Mutex(gate1) || Mutex(gate2)
 
 		)
-	% )
+	)
 );

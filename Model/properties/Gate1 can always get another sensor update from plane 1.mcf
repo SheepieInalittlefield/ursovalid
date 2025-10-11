@@ -1,1 +1,0 @@
-nu Z . ( (mu Y . (<getSensorUpdate(gate1, one)> true || <true> Y)) && [true] Z )
