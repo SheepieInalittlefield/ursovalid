@@ -1,7 +1,7 @@
 sort PlaneRequest = struct land | leave;
 PlaneResponse = struct hold | redirect;
 LocStatus = struct out_of_order | operational;
-Location = struct gate1 | gate2 | taxiway | runway;
+Location = struct gate1 | gate2 | taxiway | runway | air;
 %Plane = struct one | two | three | four | five;
 Plane = struct one | two;
 
@@ -16,9 +16,8 @@ getLocStatus: Location # LocStatus;
 contactHelp;
 
 sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocStatus;
-sendAssignment, receiveAssignment, commAssignment: Location # Plane;
-sendTWSensorUpdate, receiveTWSensorUpdate, commTWSensorUpdate: Location # Plane;
-sendRWSensorUpdate, receiveRWSensorUpdate, commRWSensorUpdate: Location # Plane;
+sendAssignment, receiveAssignment, commAssignment: Location # Plane # Bool;
+sendSensorUpdate, receiveSensorUpdate, commSensorUpdate: Location # Location # Plane;
 
 lockMutex, receiveLockMutex, commLockMutex;
 unlockMutex, receiveUnlockMutex, commUnlockMutex;
@@ -31,7 +30,12 @@ proc Mutex = (
 	)
 );
 
-proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool) = (
+% proc DoAssignment(location: Location, plane: Plane) = (
+% 	sendAssignment(location, plane, true)
+% 	% . assign(location, plane)
+% );
+
+proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location) = (
 	sum P: Plane, R: PlaneRequest . (
 		receiveRequest(P, R)
 		. (exists loc1, loc2: Location . locationStatus(loc1) == out_of_order && locationStatus(loc2) == out_of_order) -> (
@@ -41,73 +45,170 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 			sendResponse(P, hold)
 			. Communications()
 		) <> (R == land) -> (
-            sendAssignment(runway, P)
-            . assign(runway, P)
-        ) 
+			% DoAssignment(runway, P)
+			sendAssignment(runway, P, true)
+			. Communications(occupiedStatus = occupiedStatus[runway->true])
+        ) <> (R == leave) -> (
+			tau
+		)
     )
-);
-
-proc Runway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-    % runway has been assigned to a plane by central
-	sum P: Plane . (
-		receiveAssignment(runway, P)
-		. Runway(true, P, is_occupied, status)
+	+ sum L: Location, P: Plane . (
+		% got unassigment update
+		receiveAssignment(L, P, false)
+		. unassign(L, P)
+		. Communications(occupiedStatus = occupiedStatus[L->false])
 	)
-	+ sum P: plane . (
-		getSensorUpdate(runway, P)
-		. (is_assigned == false || !(assigned_to == P)) -> (
-			contactHelp 
-			. Runway(is_assigned, assigned_to, is_occupied, status)
-		) <> (
-			. Runway(is_assigned, assigned_to, true, status))
+	+ sum P: Plane . (
+		% plane assigned to runway has arrived
+		( 
+			receiveSensorUpdate(runway, air, P)
+			% . DoAssignment(taxiway, P)
+			. sendAssignment(taxiway, P, true)
+			. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
+		) + (
+			% plane assigned to taxiway has arrived
+			receiveSensorUpdate(taxiway, air, P)
+			. sendAssignment(gate1, P, true)
+			. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+		) + (
+			% plane assigned to gate1 has arrived
+			receiveSensorUpdate(gate1, air, P)
+			. Communications(occupiedStatus = occupiedStatus[gate1->true][taxiway->false], planeLocation = planeLocation[P->gate1])
+		) + (
+			% plane assigned to gate2 has arrived
+			receiveSensorUpdate(gate2, air, P)
+			. Communications(occupiedStatus = occupiedStatus[gate2->true][taxiway->false], planeLocation = planeLocation[P->gate2])
 		)
 	)
 );
 
-proc Taxiway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+    % loc has been assigned to a plane by central
 	sum P: Plane . (
-		receiveAssignment(taxiway, P)
-		. Taxiway(is_assigned = true, assigned_to = P)
+		receiveAssignment(loc, P, true)
+		. assign(loc, P)
+		. Loc(is_assigned = true, assigned_to = P)
+	)
+	+ sum P: Plane . (
+		getSensorUpdate(loc, P)
+		% bad plane
+		. ((is_assigned == false) || (assigned_to != P)) -> (
+			contactHelp 
+			. Loc()
+		) <> (is_assigned == true && assigned_to == P && is_occupied == true) -> (
+			% bro i already know you're here
+			Loc()
+		) <> (is_assigned == true && assigned_to == P && is_occupied == false) -> (
+			% good plane
+			sendSensorUpdate(loc, air, P)
+			. (loc == taxiway) -> (
+				% runway -> taxiway
+				sendSensorUpdate(taxiway, runway, P)
+				. sendSensorUpdate(taxiway, gate1, P)
+				. sendSensorUpdate(taxiway, gate2, P)
+			) <> (loc == gate1) -> (
+				sendSensorUpdate(gate1, taxiway, P)
+			) <> (loc == gate2) -> (
+				sendSensorUpdate(gate2, taxiway, P)
+			) <> (loc == runway) -> (
+				sendSensorUpdate(runway, taxiway, P)
+			) <> (
+				tau
+			)
+			. Loc(is_occupied=true)
+		) <> (
+			%idk what happened
+			Loc(is_occupied=true)
+		)
+	)
+	+ sum L: Location, P: Plane . (
+		% neighbor got plane
+		receiveSensorUpdate(L, loc, P)
+		. (loc == runway && is_assigned && assigned_to == P && is_occupied) -> (
+			% left runway
+			sendAssignment(runway, P, false)
+			% unassign(runway, P)
+			. Loc(is_assigned=false, is_occupied=false)
+		) <> (loc == taxiway && is_assigned && assigned_to == P) -> (
+			% left taxiway
+			sendAssignment(taxiway, P, false)
+			% unassign(taxiway, P)
+			. Loc(is_assigned=false, is_occupied=false)
+		) <> (loc == gate1 && is_assigned && assigned_to == P && is_occupied) -> (
+			% left gate1
+			sendAssignment(gate1, P, false)
+			% unassign(gate1, P)
+			. Loc(is_assigned=false, is_occupied=false)
+		) <> (loc == gate2 && is_assigned && assigned_to == P && is_occupied) -> (
+			% left gate2
+			sendAssignment(gate2, P, false)
+			% unassign(gate2, P)
+			. Loc(is_assigned=false, is_occupied=false)
+		) <> (
+			% idk what happened
+			Loc()
+		)
 	)
 );
 
+% proc Taxiway(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+%     % taxiway has been assigned to a plane by central
+% 	sum P: Plane . (
+% 		receiveAssignment(taxiway, P)
+% 		. Taxiway(true, P, is_occupied, status)
+% 	)
+% 	+ sum P: Plane . (
+% 		getSensorUpdate(taxiway, P)
+% 		. (is_assigned == false || !(assigned_to == P)) -> (
+% 			contactHelp 
+% 			. Taxiway()
+% 		) <> (
+% 			sendSensorUpdate(taxiway, air, P)
+% 			. Taxiway(is_assigned, assigned_to, true, status)
+% 		)
+% 	)
+% );
 
-proc Gate_1(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-	sum P: Plane . (
-		receiveAssignment(gate1, P)
-		. Gate_1(is_assigned = true, assigned_to = P)
-	)
-);
+
+% proc Gate_1(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+% 	sum P: Plane . (
+% 		receiveAssignment(gate1, P)
+% 		. Gate_1(is_assigned = true, assigned_to = P)
+% 	)
+% );
 
 
-proc Gate_2(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-	sum P: Plane . (
-		receiveAssignment(gate1, P)
-		. Gate_2(is_assigned = true, assigned_to = P)
-	)
-);
+% proc Gate_2(is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+% 	sum P: Plane . (
+% 		receiveAssignment(gate1, P)
+% 		. Gate_2(is_assigned = true, assigned_to = P)
+% 	)
+% );
 
 init allow( 
 	% initial actions
 	{ receiveRequest, sendResponse, assign, unassign, 
 	getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, 
-	commAssignment, commTWSensorUpdate, commRWSensorUpdate, commLockMutex, commUnlockMutex },
+	commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex },
 	comm( 
 		% communication
 		{ 
 			sendLocationStatus|receiveLocationStatus -> commLocationStatus,
 			sendAssignment|receiveAssignment -> commAssignment,
-			sendTWSensorUpdate|receiveTWSensorUpdate -> commTWSensorUpdate,
-			sendRWSensorUpdate|receiveRWSensorUpdate -> commRWSensorUpdate,
+			sendSensorUpdate|receiveSensorUpdate -> commSensorUpdate,
 			lockMutex|receiveLockMutex -> commLockMutex,
 			unlockMutex|receiveUnlockMutex -> commUnlockMutex
 		},
 		% process initialization
-		Communications(lambda l: Location.operational, lambda i: Location.false)
-			|| Runway(false, one, false, operational) 
-			|| Taxiway(false, one, false, operational) 
-			|| Gate_1(false, one, false, operational) 
-			|| Gate_2(false, one, false, operational)
+		Communications(lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air)
+			|| Loc(runway, false, one, false, operational)
+			|| Loc(taxiway, false, one, false, operational)
+			|| Loc(gate1, false, one, false, operational)
+			|| Loc(gate2, false, one, false, operational)
+			% || Runway(false, one, false, operational) 
+			% || Taxiway(false, one, false, operational) 
+			% || Gate_1(false, one, false, operational) 
+			% || Gate_2(false, one, false, operational)
 			|| Mutex
 
 	)
