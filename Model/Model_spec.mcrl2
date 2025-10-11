@@ -1,9 +1,9 @@
 sort PlaneRequest = struct land | leave;
-PlaneResponse = struct hold | redirect;
+PlaneResponse = struct hold | redirect | postedcringe;
 LocStatus = struct out_of_order | operational;
 Location = struct gate1 | gate2 | taxiway | runway | air;
-%Plane = struct one | two | three | four | five;
 Plane = struct one | two;
+PlaneDir = struct landing | leaving;
 
 MutexType = struct mLocation | mAssignment | mOutOfOrder;
 
@@ -35,21 +35,25 @@ proc Mutex = (
 % 	% . assign(location, plane)
 % );
 
-proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location) = (
+proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location, planeDir: Plane -> PlaneDir) = (
 	sum P: Plane, R: PlaneRequest . (
 		receiveRequest(P, R)
 		. (exists loc1, loc2: Location . locationStatus(loc1) == out_of_order && locationStatus(loc2) == out_of_order) -> (
 			sendResponse(P, redirect)
 			. Communications()
-		) <> (exists loc1, loc2: Location . occupiedStatus(loc1) == true && occupiedStatus(loc2) == true ) -> (
+		) <> (exists loc1, loc2: Location . loc1 != loc2 && occupiedStatus(loc1) == true && occupiedStatus(loc2) == true ) -> (
 			sendResponse(P, hold)
 			. Communications()
-		) <> (R == land) -> (
+		) <> (R == land && planeLocation(P) == air) -> (
 			% DoAssignment(runway, P)
 			sendAssignment(runway, P, true)
-			. Communications(occupiedStatus = occupiedStatus[runway->true])
-        ) <> (R == leave) -> (
-			tau
+			. Communications(occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
+        ) <> (R == leave && ((planeLocation(P) == gate1) || (planeLocation(P) == gate2))) -> (
+			sendAssignment(taxiway, P, true)
+			. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
+		) <> (
+			sendResponse(P, postedcringe)
+			. Communications()
 		)
     )
 	+ sum L: Location, P: Plane . (
@@ -82,6 +86,10 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 	)
 );
 
+proc LocProcessSensorMsgs(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
+
+);
+
 proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
     % loc has been assigned to a plane by central
 	sum P: Plane . (
@@ -106,16 +114,21 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 				sendSensorUpdate(taxiway, runway, P)
 				. sendSensorUpdate(taxiway, gate1, P)
 				. sendSensorUpdate(taxiway, gate2, P)
+				. Loc(is_occupied = true)
 			) <> (loc == gate1) -> (
 				sendSensorUpdate(gate1, taxiway, P)
+				. Loc(is_occupied = true)
 			) <> (loc == gate2) -> (
 				sendSensorUpdate(gate2, taxiway, P)
+				. Loc(is_occupied = true)
 			) <> (loc == runway) -> (
 				sendSensorUpdate(runway, taxiway, P)
+				. Loc(is_occupied = true)
 			) <> (
+				% idk
 				tau
+				. Loc()
 			)
-			. Loc(is_occupied=true)
 		) <> (
 			%idk what happened
 			Loc(is_occupied=true)
@@ -200,7 +213,7 @@ init allow(
 			unlockMutex|receiveUnlockMutex -> commUnlockMutex
 		},
 		% process initialization
-		Communications(lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air)
+		Communications(lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
 			|| Loc(runway, false, one, false, operational)
 			|| Loc(taxiway, false, one, false, operational)
 			|| Loc(gate1, false, one, false, operational)
