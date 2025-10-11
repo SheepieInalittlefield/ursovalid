@@ -5,7 +5,7 @@ Location = struct gate1 | gate2 | taxiway | runway | air;
 Plane = struct one | two;
 PlaneDir = struct landing | leaving;
 
-MutexType = struct mLocation | mAssignment | mOutOfOrder;
+% MutexType = struct RW_TW | TW_G1 | TW_G2;
 
 act receiveRequest: Plane # PlaneRequest;
 sendResponse: Plane # PlaneResponse;
@@ -19,14 +19,14 @@ sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocSta
 sendAssignment, receiveAssignment, commAssignment: Location # Plane # Bool;
 sendSensorUpdate, receiveSensorUpdate, commSensorUpdate: Location # Location # Plane;
 
-lockMutex, receiveLockMutex, commLockMutex;
-unlockMutex, receiveUnlockMutex, commUnlockMutex;
+lockMutex, receiveLockMutex, commLockMutex: Location;
+unlockMutex, receiveUnlockMutex, commUnlockMutex: Location;
 
-proc Mutex = (
+proc Mutex(t: Location) = (
 	(
-		receiveLockMutex
-		. receiveUnlockMutex
-		. Mutex
+		receiveLockMutex(t)
+		. receiveUnlockMutex(t)
+		. Mutex(t)
 	)
 );
 
@@ -87,15 +87,48 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 );
 
 proc LocProcessSensorMsgs(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
-
+	sum L: Location, P: Plane . (
+		% neighbor got plane
+		receiveSensorUpdate(L, loc, P)
+		. (loc == runway && is_assigned && assigned_to == P && is_occupied) -> (
+			% left runway
+			sendAssignment(runway, P, false)
+			% unassign(runway, P)
+			% . Loc(is_assigned=false, is_occupied=false)
+		) <> (loc == taxiway && is_assigned && assigned_to == P) -> (
+			% left taxiway
+			sendAssignment(taxiway, P, false)
+			% unassign(taxiway, P)
+			% . Loc(is_assigned=false, is_occupied=false)
+		) <> (loc == gate1 && is_assigned && assigned_to == P && is_occupied) -> (
+			% left gate1
+			sendAssignment(gate1, P, false)
+			% unassign(gate1, P)
+			% . Loc(is_assigned=false, is_occupied=false)
+		) <> (loc == gate2 && is_assigned && assigned_to == P && is_occupied) -> (
+			% left gate2
+			sendAssignment(gate2, P, false)
+			% unassign(gate2, P)
+			% . Loc(is_assigned=false, is_occupied=false)
+		) 
+	)
 );
 
 proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus) = (
     % loc has been assigned to a plane by central
 	sum P: Plane . (
-		receiveAssignment(loc, P, true)
-		. assign(loc, P)
-		. Loc(is_assigned = true, assigned_to = P)
+		lockMutex(loc)
+		. (
+			unlockMutex(loc)
+			. Loc()
+			+ (
+			receiveAssignment(loc, P, true)
+			. assign(loc, P)
+			. unlockMutex(loc)
+			. Loc(is_assigned = true, assigned_to = P)
+			)
+		)
+		
 	)
 	+ sum P: Plane . (
 		getSensorUpdate(loc, P)
@@ -108,59 +141,55 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			Loc()
 		) <> (is_assigned == true && assigned_to == P && is_occupied == false) -> (
 			% good plane
-			sendSensorUpdate(loc, air, P)
-			. (loc == taxiway) -> (
-				% runway -> taxiway
-				sendSensorUpdate(taxiway, runway, P)
+			lockMutex(loc)
+			. (loc == runway) -> (
+				lockMutex(taxiway)
+				. sendSensorUpdate(loc, air, P)
+				. sendSensorUpdate(runway, taxiway, P)
+				. unlockMutex(taxiway)
+				. unlockMutex(runway)
+				. Loc(is_occupied = true)
+			) <> (loc == taxiway) -> (
+				lockMutex(runway)
+				. lockMutex(gate1)
+				. lockMutex(gate2)
+				. sendSensorUpdate(loc, air, P)
+				. sendSensorUpdate(taxiway, runway, P)
+				. unlockMutex(runway)
 				. sendSensorUpdate(taxiway, gate1, P)
+				. unlockMutex(gate1)
 				. sendSensorUpdate(taxiway, gate2, P)
+				. unlockMutex(gate2)
+				.unlockMutex(taxiway)
 				. Loc(is_occupied = true)
 			) <> (loc == gate1) -> (
-				sendSensorUpdate(gate1, taxiway, P)
+				lockMutex(taxiway)
+				. sendSensorUpdate(loc, air, P)
+				. sendSensorUpdate(gate1, taxiway, P)
+				. unlockMutex(taxiway)
+				. unlockMutex(gate1)
 				. Loc(is_occupied = true)
 			) <> (loc == gate2) -> (
-				sendSensorUpdate(gate2, taxiway, P)
-				. Loc(is_occupied = true)
-			) <> (loc == runway) -> (
-				sendSensorUpdate(runway, taxiway, P)
+				lockMutex(taxiway)
+				. sendSensorUpdate(loc, air, P)
+				. sendSensorUpdate(gate2, taxiway, P)
+				. unlockMutex(taxiway)
+				. unlockMutex(gate1)
 				. Loc(is_occupied = true)
 			) <> (
 				% idk
 				tau
 				. Loc()
 			)
+			
 		) <> (
 			%idk what happened
 			Loc(is_occupied=true)
 		)
 	)
-	+ sum L: Location, P: Plane . (
-		% neighbor got plane
-		receiveSensorUpdate(L, loc, P)
-		. (loc == runway && is_assigned && assigned_to == P && is_occupied) -> (
-			% left runway
-			sendAssignment(runway, P, false)
-			% unassign(runway, P)
-			. Loc(is_assigned=false, is_occupied=false)
-		) <> (loc == taxiway && is_assigned && assigned_to == P) -> (
-			% left taxiway
-			sendAssignment(taxiway, P, false)
-			% unassign(taxiway, P)
-			. Loc(is_assigned=false, is_occupied=false)
-		) <> (loc == gate1 && is_assigned && assigned_to == P && is_occupied) -> (
-			% left gate1
-			sendAssignment(gate1, P, false)
-			% unassign(gate1, P)
-			. Loc(is_assigned=false, is_occupied=false)
-		) <> (loc == gate2 && is_assigned && assigned_to == P && is_occupied) -> (
-			% left gate2
-			sendAssignment(gate2, P, false)
-			% unassign(gate2, P)
-			. Loc(is_assigned=false, is_occupied=false)
-		) <> (
-			% idk what happened
-			Loc()
-		)
+	+ (
+		LocProcessSensorMsgs(loc, is_assigned, assigned_to, is_occupied, status)
+		. Loc(is_assigned=false, is_occupied=false)
 	)
 );
 
@@ -198,31 +227,36 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 % 	)
 % );
 
-init allow( 
-	% initial actions
-	{ receiveRequest, sendResponse, assign, unassign, 
-	getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, 
-	commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex },
-	comm( 
-		% communication
-		{ 
-			sendLocationStatus|receiveLocationStatus -> commLocationStatus,
-			sendAssignment|receiveAssignment -> commAssignment,
-			sendSensorUpdate|receiveSensorUpdate -> commSensorUpdate,
-			lockMutex|receiveLockMutex -> commLockMutex,
-			unlockMutex|receiveUnlockMutex -> commUnlockMutex
-		},
-		% process initialization
-		Communications(lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
-			|| Loc(runway, false, one, false, operational)
-			|| Loc(taxiway, false, one, false, operational)
-			|| Loc(gate1, false, one, false, operational)
-			|| Loc(gate2, false, one, false, operational)
-			% || Runway(false, one, false, operational) 
-			% || Taxiway(false, one, false, operational) 
-			% || Gate_1(false, one, false, operational) 
-			% || Gate_2(false, one, false, operational)
-			|| Mutex
+init 
+	% hide({
+	% % commUnlockMutex,commLockMutex
+	% },
+	allow( 
+		% initial actions
+		{ receiveRequest, sendResponse, assign, unassign, 
+		getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, 
+		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex },
+		comm( 
+			% communication
+			{ 
+				sendLocationStatus|receiveLocationStatus -> commLocationStatus,
+				sendAssignment|receiveAssignment -> commAssignment,
+				sendSensorUpdate|receiveSensorUpdate -> commSensorUpdate,
+				lockMutex|receiveLockMutex -> commLockMutex,
+				unlockMutex|receiveUnlockMutex -> commUnlockMutex
+			},
+			% process initialization
+			Communications(lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
+				|| Loc(runway, false, one, false, operational)
+				|| Loc(taxiway, false, one, false, operational)
+				|| Loc(gate1, false, one, false, operational)
+				|| Loc(gate2, false, one, false, operational)
+				% || Runway(false, one, false, operational) 
+				% || Taxiway(false, one, false, operational) 
+				% || Gate_1(false, one, false, operational) 
+				% || Gate_2(false, one, false, operational)
+				|| Mutex(runway) || Mutex(taxiway) || Mutex(gate1) || Mutex(gate2)
 
-	)
+		)
+	% )
 );
