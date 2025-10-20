@@ -2,7 +2,6 @@
  <spec>Model_spec.mcrl2</spec>
  <properties>
   <property>No deadlocks</property>
-  <property>Gate1 can always get another sensor update from plane 1</property>
   <property>req1</property>
  </properties>
  <jittyc>false</jittyc>
