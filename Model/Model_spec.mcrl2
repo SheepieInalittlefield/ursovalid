@@ -196,51 +196,6 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 				. Loc()
 			)
 			
-		) <> (is_assigned == true && assigned_to == P && is_occupied == false) -> (
-			% good plane
-			lockMutex(loc)
-			. (loc == runway) -> (
-				lockMutex(taxiway)
-				. sendSensorUpdate(loc, air, P)
-				. sendSensorUpdate(runway, taxiway, P)
-				. unlockMutex(taxiway)
-				. unlockMutex(runway)
-				. Loc(is_occupied = true)
-			) <> (loc == taxiway) -> (
-				lockMutex(runway)
-				. lockMutex(gate1)
-				. lockMutex(gate2)
-				. sendSensorUpdate(loc, air, P)
-				. sendSensorUpdate(taxiway, runway, P)
-				. unlockMutex(runway)
-				. sendSensorUpdate(taxiway, gate1, P)
-				. unlockMutex(gate1)
-				. sendSensorUpdate(taxiway, gate2, P)
-				. unlockMutex(gate2)
-				.unlockMutex(taxiway)
-				. Loc(is_occupied = true)
-			) <> (loc == gate1) -> (
-				lockMutex(taxiway)
-				. sendSensorUpdate(loc, air, P)
-				. sendSensorUpdate(gate1, taxiway, P)
-				. unlockMutex(taxiway)
-				. unlockMutex(gate1)
-				. Loc(is_occupied = true)
-			) <> (loc == gate2) -> (
-				lockMutex(taxiway)
-				. sendSensorUpdate(loc, air, P)
-				. sendSensorUpdate(gate2, taxiway, P)
-				. unlockMutex(taxiway)
-				. unlockMutex(gate1)
-				. Loc(is_occupied = true)
-			) <> (
-				% idk
-				tau
-				. Loc()
-			)
-		) <> (
-			%idk what happened
-			Loc(is_occupied=true)
 		)
 	)
 	+ sum L: Location, P: Plane . (
