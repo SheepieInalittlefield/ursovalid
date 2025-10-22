@@ -1,0 +1,40 @@
+% For any sequence of states after a receiveRequest(P, land), assign must be possible.
+
+% Unless runwayOoO or gate1 and gate2 OoO
+
+ 
+
+forall P:Plane .
+
+   nu Y(runwayOoO1: Bool = false, gate1OoO1: Bool = false, gate2OoO1: Bool = false ) .
+          (
+             [!(
+                getLocStatus(runway, out_of_order) || getLocStatus(gate1, out_of_order) ||
+                getLocStatus(gate2, out_of_order) || getLocStatus(runway, operational) ||
+                getLocStatus(gate1, operational) || getLocStatus(gate2, operational))]
+             Y(runwayOoO1, gate1OoO1, gate2OoO1)
+        && [getLocStatus(runway, out_of_order)]Y(true, gate1OoO1, gate2OoO1)
+        && [getLocStatus(gate1, out_of_order)]Y(runwayOoO1, true, gate2OoO1)
+        && [getLocStatus(gate2, out_of_order)]Y(runwayOoO1, gate1OoO1, true)
+        && [getLocStatus(runway, operational)]Y(false, gate1OoO1, gate2OoO1)
+        && [getLocStatus(gate1, operational)]Y(runwayOoO1, false, gate2OoO1)
+        && [getLocStatus(gate2, operational)]Y(runwayOoO1, gate1OoO1, false)
+
+        && [receiveRequest(P, land)] 
+             mu X(runwayOoO2: Bool = runwayOoO1, gate1OoO2: Bool = gate1OoO1, gate2OoO2: Bool = gate2OoO1 ) .
+                 ((
+                    [!(assign(runway, P) ||
+                       getLocStatus(runway, out_of_order) || getLocStatus(gate1, out_of_order) ||
+                       getLocStatus(gate2, out_of_order) || getLocStatus(runway, operational) ||
+                       getLocStatus(gate1, operational) || getLocStatus(gate2, operational))]
+                    X(runwayOoO2, gate1OoO2, gate2OoO2)
+               && [getLocStatus(runway, out_of_order)]X(true, gate1OoO2, gate2OoO2)
+               && [getLocStatus(gate1, out_of_order)]X(runwayOoO2, true, gate2OoO2)
+               && [getLocStatus(gate2, out_of_order)]X(runwayOoO2, gate1OoO2, true)
+               && [getLocStatus(runway, operational)]X(false, gate1OoO2, gate2OoO2)
+               && [getLocStatus(gate1, operational)]X(runwayOoO2, false, gate2OoO2)
+               && [getLocStatus(gate2, operational)]X(runwayOoO2, gate1OoO2, false)
+               && <true>true)
+               && (val(runwayOoO2 == true || (gate1OoO2 == true && gate2OoO2 == true))))
+
+)

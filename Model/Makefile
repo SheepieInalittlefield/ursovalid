@@ -3,7 +3,7 @@
 
 nproc := $(shell nproc)
 
-PROPERTY_FILE := properties/landing_plane_reaches_taxiway.mcf
+PROPERTY_FILE := properties/JFreq.mcf
 # PROPERTY_FILE := "properties/Gate1 can always get another sensor update from plane 1.mcf"
 
 
@@ -20,7 +20,7 @@ all:
 
 #	# LTS ROUTE!
 # 	lps2lts -v --threads=$(nproc) quercus.lps quercus.lts
-# 	ltsconvert -v -ebranching-bisim quercus.lts quercus.lts
+	ltsconvert -v -ebranching-bisim quercus.lts quercus.lts
 # 	lts2pbes -v --counter-example -f$(PROPERTY_FILE) quercus.lts quercus.pbes
 # 	pbessolve quercus.pbes --search-strategy=breadth-first -v --threads=$(nproc) -Q0 --file=quercus.lts --evidence-file=quercus.evidence.lts
 

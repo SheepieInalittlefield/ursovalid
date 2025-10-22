@@ -1,3 +1,0 @@
-[true*] forall L:Location, P:Plane.
-  [assign(L, P)]
-    [ !unassign(L, P)* . (exists Q:Plane. val(P != Q) && assign(L, Q)) ] false
