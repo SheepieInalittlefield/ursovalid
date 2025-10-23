@@ -189,14 +189,12 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 		
 	)
 	+ sum P: Plane . (
+		(!(is_assigned == true && assigned_to == P && is_occupied == true)) -> 
 		getSensorUpdate(loc, P)
 		% bad plane
 		. ((is_assigned == false) || (assigned_to != P)) -> (
 			contactHelp 
 			. Loc()
-		) <> (is_assigned == true && assigned_to == P && is_occupied == true) -> (
-			% bro i already know you're here
-			Loc()
 		) <> (is_assigned == true && assigned_to == P && is_occupied == false) -> (
 			% good plane
 			lockMutex(loc)
