@@ -3,3 +3,5 @@ out
 *.lps
 *.lts
 *.pbes
+jittyc*
+*.tmp
