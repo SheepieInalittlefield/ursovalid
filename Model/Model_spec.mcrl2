@@ -114,7 +114,7 @@ planeDir: Plane -> PlaneDir) = (
 			. (planeDir(P) == landing) -> (
 				sendAssignment(taxiway, P, true) % Communications is waiting here for the taxiway process 
 				. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
-				+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+				+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 				. sendAssignment(taxiway, P, true) % Communications is waiting here for the taxiway process 
 				. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
 			) <> (planeDir(P) == leaving) -> (
@@ -129,13 +129,13 @@ planeDir: Plane -> PlaneDir) = (
 				(occupiedStatus(gate1) == false) -> (		
 					sendAssignment(gate1, P, true)
 					. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
-					+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+					+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 					. sendAssignment(gate1, P, true)
 					. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
 				) <> (occupiedStatus(gate1) == true) -> (
 					sendAssignment(gate2, P, true)
 					. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
-					+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+					+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 					. sendAssignment(gate2, P, true)
 					. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
 				)
@@ -146,7 +146,7 @@ planeDir: Plane -> PlaneDir) = (
 				) <> (planeLocation(P) == gate2) -> (
 					Communications(occupiedStatus = occupiedStatus[gate2->false][runway->true], planeLocation = planeLocation[P->taxiway])
 				)
-				+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+				+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 				. sendAssignment(runway, P, true)
 				. (planeLocation(P) == gate1) -> (
 					Communications(occupiedStatus = occupiedStatus[gate1->false][runway->true], planeLocation = planeLocation[P->taxiway])
