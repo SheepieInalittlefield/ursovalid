@@ -64,26 +64,6 @@ planeDir: Plane -> PlaneDir) = (
 			. (processedPlanes >= maxPlanes) -> (
 			sendResponse(P, postedcringe)
 			. Communications()
-		) <> (exists loc1, loc2: Location . loc1 != loc2 && occupiedStatus(loc1) == true && occupiedStatus(loc2) == true ) -> (
-			sendResponse(P, hold)
-			. Communications()
-		) <> (R == land && planeLocation(P) == air && occupiedStatus(runway) == false && !(exists p: Plane . planeDir(p) == leaving)) -> (
-			% DoAssignment(runway, P)
-			sendAssignment(runway, P, true)
-			. Communications(occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
-			+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
-			. sendAssignment(runway, P, true)
-			. Communications(occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
-        ) <> (R == leave && ((planeLocation(P) == gate1) || (planeLocation(P) == gate2)) && occupiedStatus(taxiway) == false && !(exists p: Plane . planeDir(p) == landing)) -> (
-			sendAssignment(taxiway, P, true)
-			. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
-			+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
-			. sendAssignment(taxiway, P, true)
-			. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
-		) <> (R == land && planeLocation(P) == air && (occupiedStatus(runway) == true || exists p: Plane . planeDir(p) == leaving)) -> (
-			sendResponse(P, hold)
-			. Communications()
-		) <> (
 			) <> (locationStatus(runway) == out_of_order || exists loc1, loc2: Location . loc1 != loc2 && locationStatus(loc1) == out_of_order && locationStatus(loc2) == out_of_order) -> (
 				sendResponse(P, redirect)
 				. Communications()
