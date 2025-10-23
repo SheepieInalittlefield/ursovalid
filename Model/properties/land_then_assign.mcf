@@ -1,0 +1,7 @@
+forall P:Plane .
+    nu X(runwayOoO: Bool = false, gate1OoO: Bool = false, gate2OoO: Bool = false ) . (
+        [getLocStatus(runway, out_of_order)] X(true, gate1OoO, gate2OoO)
+        && [getLocStatus(gate1, out_of_order)] X(runwayOoO, true, gate2OoO)
+        && [getLocStatus(gate2, out_of_order)]X(runwayOoO, gate1OoO, true)
+        && <receiveRequest(P, land) . !(assign(runway, P) || getLocStatus(runway, out_of_order) || getLocStatus(gate1, out_of_order) || getLocStatus(gate2, out_of_order))* . assign(runway, P)>val(runwayOoO == true || (gate1OoO == true && gate2OoO == true))
+        && <!(assign(runway, P) || getLocStatus(runway, out_of_order) || getLocStatus(gate1, out_of_order) || getLocStatus(gate2, out_of_order))> X(runwayOoO, gate1OoO, gate2OoO))
