@@ -3,7 +3,7 @@
 
 nproc := $(shell nproc)
 
-PROPERTY_FILE := properties/No\ deadlocks.mcf
+PROPERTY_FILE := properties/JFreq.mcf
 # PROPERTY_FILE := "properties/Gate1 can always get another sensor update from plane 1.mcf"
 
 # Usage:
@@ -33,7 +33,7 @@ lts:
 
 
 graph: 
-# 	lps2lts quercus.evidence.lps quercus.evidence.lts
+	# lps2lts quercus.evidence.lps quercus.evidence.lts
 	ltsgraph quercus.evidence.lts
 
 # mcrl22lps abp.mcrl2 abp.lps

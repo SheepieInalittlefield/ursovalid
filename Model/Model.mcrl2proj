@@ -12,6 +12,7 @@
   <property>Test</property>
   <property>Unassign</property>
   <property>JFreq</property>
+  <property>Start Happens</property>
  </properties>
  <jittyc>false</jittyc>
  <linearisation_method>regular2</linearisation_method>

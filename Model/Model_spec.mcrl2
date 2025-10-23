@@ -53,7 +53,7 @@ locationStatus: Location -> LocStatus,
 occupiedStatus: Location -> Bool, 
 planeLocation: Plane -> Location, 
 planeDir: Plane -> PlaneDir) = (
-	(processedPlanes >= maxPlanes && forall loc: Location . occupiedStatus(loc) == false) -> (
+	(processedPlanes >= maxPlanes) -> (
 		pressStop
 		. pressStart
 		. Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
@@ -167,10 +167,7 @@ planeDir: Plane -> PlaneDir) = (
 	)
 	+ sum L: Location, S: LocStatus . (
 		% got unassigment update
-		
-		receiveLocationStatus(L, S) %% TAXIWAY IS WAITING ON THIS
-
-		. Communications(locationStatus = locationStatus[L->S])
+		ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 	)
 );
 
@@ -183,6 +180,7 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			. Loc()
 			+ (
 			receiveAssignment(loc, P, true)
+			%% A getLocStatus that should disallow us from assigning this can occur here.
 			. assign(loc, P)
 			. unlockMutex(loc)
 			. Loc(is_assigned = true, assigned_to = P)
@@ -205,11 +203,7 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			. (loc == runway) -> (
 				lockMutex(taxiway)
 				. sendSensorUpdate(loc, air, P)
-
-
-				. sendSensorUpdate(runway, taxiway, P) %% Runway process is HERE
-
-
+				. sendSensorUpdate(runway, taxiway, P)
 				. unlockMutex(taxiway)
 				. unlockMutex(runway)
 				. Loc(is_occupied = true)
@@ -271,7 +265,7 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			Loc()
 		)
 	)
-	+ (status == operational && loc != taxiway) -> (
+	. (status == operational && loc != taxiway) -> (
 		getLocStatus(loc, out_of_order)
 		. sendLocationStatus(loc, out_of_order)
 		. Loc(status = out_of_order)
@@ -283,15 +277,15 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 );
 
 init 
-	% hide(
-	% 	{
-	% commUnlockMutex,commLockMutex
-	% },
+	hide(
+		{
+	commUnlockMutex,commLockMutex,commLocationStatus,commAssignment,commSensorUpdate
+	},
 	allow( 
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
 		getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, 
-		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex },
+		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, pressStop, pressStart },
 		comm( 
 			% communication
 			{ 
@@ -302,13 +296,13 @@ init
 				unlockMutex|receiveUnlockMutex -> commUnlockMutex
 			},
 			% process initialization
-			Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
+			Communications(2, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
 				|| Loc(runway, false, one, false, operational)
 				|| Loc(taxiway, false, one, false, operational)
 				|| Loc(gate1, false, one, false, operational)
 				|| Loc(gate2, false, one, false, operational)
 				|| Mutex(runway) || Mutex(taxiway) || Mutex(gate1) || Mutex(gate2)
 
-		% )
+		)
 	)
 );
