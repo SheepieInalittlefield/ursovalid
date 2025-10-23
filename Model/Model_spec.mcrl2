@@ -39,7 +39,7 @@ proc ProcessCommComms(locationStatus: Location -> LocStatus, occupiedStatus: Loc
 	sum L: Location, S: LocStatus . (
 		% got unassigment update
 		receiveLocationStatus(L, S)
-		. Communications(locationStatus[L->S], occupiedStatus, planeLocation, planeDir)
+		. Communications(locationStatus = locationStatus[L->S])
 	)
 );
 
@@ -84,7 +84,10 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 		( 
 			receiveSensorUpdate(runway, air, P)
 			. (planeDir(P) == landing) -> (
-				sendAssignment(taxiway, P, true)
+				sendAssignment(taxiway, P, true) % Communications is waiting here for the taxiway process 
+				. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
+				+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+				. sendAssignment(taxiway, P, true) % Communications is waiting here for the taxiway process 
 				. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
 			) <> (planeDir(P) == leaving) -> (
 				Communications(occupiedStatus = occupiedStatus[runway->true][taxiway->false], planeLocation = planeLocation[P->runway], planeDir = planeDir[P->leaving])
@@ -95,15 +98,28 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 			% plane assigned to taxiway has arrived
 			receiveSensorUpdate(taxiway, air, P)
 			. (planeDir(P) == landing) -> (
-				(occupiedStatus(gate1) == false) -> (
+				(occupiedStatus(gate1) == false) -> (		
 					sendAssignment(gate1, P, true)
+					. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+					+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+					. sendAssignment(gate1, P, true)
 					. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
 				) <> (occupiedStatus(gate1) == true) -> (
 					sendAssignment(gate2, P, true)
 					. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
+					+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+					. sendAssignment(gate2, P, true)
+					. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
 				)
 			)  <> (planeDir(P) == leaving) -> (
 				sendAssignment(runway, P, true)
+				. (planeLocation(P) == gate1) -> (
+					Communications(occupiedStatus = occupiedStatus[gate1->false][runway->true], planeLocation = planeLocation[P->taxiway])
+				) <> (planeLocation(P) == gate2) -> (
+					Communications(occupiedStatus = occupiedStatus[gate2->false][runway->true], planeLocation = planeLocation[P->taxiway])
+				)
+				+ ProcessCommComms(locationStatus, occupiedStatus, planeLocation, planeDir)
+				. sendAssignment(runway, P, true)
 				. (planeLocation(P) == gate1) -> (
 					Communications(occupiedStatus = occupiedStatus[gate1->false][runway->true], planeLocation = planeLocation[P->taxiway])
 				) <> (planeLocation(P) == gate2) -> (
@@ -123,7 +139,9 @@ proc Communications(locationStatus: Location -> LocStatus, occupiedStatus: Locat
 	)
 	+ sum L: Location, S: LocStatus . (
 		% got unassigment update
-		receiveLocationStatus(L, S)
+		
+		receiveLocationStatus(L, S) %% TAXIWAY IS WAITING ON THIS
+
 		. Communications(locationStatus = locationStatus[L->S])
 	)
 );
@@ -159,7 +177,11 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			. (loc == runway) -> (
 				lockMutex(taxiway)
 				. sendSensorUpdate(loc, air, P)
-				. sendSensorUpdate(runway, taxiway, P)
+
+
+				. sendSensorUpdate(runway, taxiway, P) %% Runway process is HERE
+
+
 				. unlockMutex(taxiway)
 				. unlockMutex(runway)
 				. Loc(is_occupied = true)
@@ -222,10 +244,10 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 		)
 	)
 	+ sum S: LocStatus . (
-		% lockMutex(loc)
 		getLocStatus(loc, S)
+		% . lockMutex(loc)
 		. (S != status) -> (
-			sendLocationStatus(loc, S)
+			sendLocationStatus(loc, S) %% All other location processes are here
 			% . unlockMutex(loc)
 			. Loc(status = S)
 		) <> (

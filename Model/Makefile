@@ -3,7 +3,7 @@
 
 nproc := $(shell nproc)
 
-PROPERTY_FILE := properties/JFreq.mcf
+PROPERTY_FILE := properties/No\ deadlocks.mcf
 # PROPERTY_FILE := "properties/Gate1 can always get another sensor update from plane 1.mcf"
 
 
@@ -19,12 +19,12 @@ all:
 # 	lpssuminst -v quercus.lps quercus.lps
 
 #	# LTS ROUTE!
-# 	lps2lts -v --threads=$(nproc) quercus.lps quercus.lts
-	ltsconvert -v -ebranching-bisim quercus.lts quercus.lts
+	lps2lts -v --threads=$(nproc) quercus.lps quercus.lts
+	ltsconvert -v -ebranching-bisim quercus.lts quercus_reduced.lts
 # 	lts2pbes -v --counter-example -f$(PROPERTY_FILE) quercus.lts quercus.pbes
 # 	pbessolve quercus.pbes --search-strategy=breadth-first -v --threads=$(nproc) -Q0 --file=quercus.lts --evidence-file=quercus.evidence.lts
 
-	lps2pbes -v -c -f$(PROPERTY_FILE) quercus.lps quercus.pbes
+	lts2pbes -v -c -f$(PROPERTY_FILE) quercus_reduced.lts quercus.pbes
 	pbessolve quercus.pbes --search-strategy=breadth-first -v --threads=$(nproc) -Q0 --file=quercus.lps --evidence-file=quercus.evidence.lps
 
 graph: 
