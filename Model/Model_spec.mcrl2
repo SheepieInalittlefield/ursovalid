@@ -53,7 +53,7 @@ locationStatus: Location -> LocStatus,
 occupiedStatus: Location -> Bool, 
 planeLocation: Plane -> Location, 
 planeDir: Plane -> PlaneDir) = (
-	(processedPlanes >= maxPlanes) -> (
+	(processedPlanes >= maxPlanes && forall loc: Location . locationStatus(loc) == operational && occupiedStatus(loc) == true) -> (
 		pressStop
 		. pressStart
 		. Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
@@ -294,7 +294,7 @@ init
 				unlockMutex|receiveUnlockMutex -> commUnlockMutex
 			},
 			% process initialization
-			Communications(2, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
+			Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
 				|| Loc(runway, false, one, false, operational)
 				|| Loc(taxiway, false, one, false, operational)
 				|| Loc(gate1, false, one, false, operational)
