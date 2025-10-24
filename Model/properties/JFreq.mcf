@@ -14,8 +14,8 @@ forall P:Plane .
         && [getLocStatus(runway, operational)]Y(false, gate1OoO1, gate2OoO1)
         && [getLocStatus(gate1, operational)]Y(runwayOoO1, false, gate2OoO1)
         && [getLocStatus(gate2, operational)]Y(runwayOoO1, gate1OoO1, false)
-        && [receiveRequest(P, land)] 
-             mu X(runwayOoO2: Bool = runwayOoO1, gate1OoO2: Bool = gate1OoO1, gate2OoO2: Bool = gate2OoO1 ) .
+        && [receiveRequest(P, land)]  (
+            ( nu X(runwayOoO2: Bool = runwayOoO1, gate1OoO2: Bool = gate1OoO1, gate2OoO2: Bool = gate2OoO1 ) .
                  ((
                     [!(assign(runway, P) ||
                        getLocStatus(runway, out_of_order) || getLocStatus(gate1, out_of_order) ||
@@ -28,9 +28,8 @@ forall P:Plane .
                && [getLocStatus(runway, operational)]X(false, gate1OoO2, gate2OoO2)
                && [getLocStatus(gate1, operational)]X(runwayOoO2, false, gate2OoO2)
                && [getLocStatus(gate2, operational)]X(runwayOoO2, gate1OoO2, false)
-               && <true>true
-               || (forall L:Location, P2:Plane . nu Z.  (<tau + getSensorUpdate(L, P2) + contactHelp>Z || <getSensorUpdate(L, P2) + contactHelp>Z || <tau>Z || <getSensorUpdate(L, P2)>Z)))
-               %%|| (forall L:Location, P2:Plane . nu Z . (<getSensorUpdate(L, P2) + contactHelp>Z || <getSensorUpdate(taxiway, two)>Z || val(L == air)))
-               || (val(runwayOoO2 == true || (gate1OoO2 == true && gate2OoO2 == true))))
-
+               % && <!pressStop*><assign(runway, P)>true)
+               && (val(runwayOoO2 == true || (gate1OoO2 == true && gate2OoO2 == true))))
+                 ))
+         || <!pressStop*><assign(runway, P)>true)
 )
