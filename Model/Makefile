@@ -3,7 +3,8 @@
 
 nproc := $(shell nproc)
 
-PROPERTY_FILE ?= properties/Requirement\ 9.mcf
+PROPERTY_FILE ?= properties/Requirement 9.mcf
+VERBOSE ?= 1
 
 lts:
 	mcrl22lps Model_spec.mcrl2 quercus.lps -lregular
@@ -12,12 +13,12 @@ lts:
 # 	lpssumelm -v quercus.lps quercus.lps
 # 	lpsconstelm -v quercus.lps quercus.lps
 # 	lpssuminst -v quercus.lps quercus.lps
-	lps2lts -v --threads=$(nproc) quercus.lps quercus.lts --cached
-	ltsconvert -v -ebranching-bisim quercus.lts quercus.lts
+	lps2lts $(if $(filter 1,$(VERBOSE)),-v) --threads=$(nproc) quercus.lps quercus.lts --cached
+	ltsconvert $(if $(filter 1,$(VERBOSE)),-v) -ebranching-bisim quercus.lts quercus.lts
 
 pbes:
-	lts2pbes -v --counter-example -f"$(PROPERTY_FILE)" quercus.lts quercus.pbes -p
-	pbessolve quercus.pbes -rjittyc --search-strategy=breadth-first -v --threads=$(nproc) -Q0 --file=quercus.lts --evidence-file=quercus.evidence.lts
+	lts2pbes $(if $(filter 1,$(VERBOSE)),-v) --counter-example -f"$(PROPERTY_FILE)" quercus.lts quercus.pbes -p
+	pbessolve $(if $(filter 1,$(VERBOSE)),-v) quercus.pbes -rjittyc --search-strategy=breadth-first --threads=$(nproc) -Q0 --file=quercus.lts --evidence-file=quercus.evidence.lts
 
 
 

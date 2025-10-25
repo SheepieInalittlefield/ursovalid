@@ -45,7 +45,7 @@ def main():
             # text=True decodes stdout/stderr as text
             # check=True will raise CalledProcessError if the command returns a non-zero exit code
             result = subprocess.run(
-                ["make", "req", f"PROPERTY_FILE={prop_file}"],
+                ["make", "pbes", f"PROPERTY_FILE={prop_file}", "VERBOSE=0"],
                 capture_output=True,
                 text=True,
                 check=True  # This makes it raise an exception on error
