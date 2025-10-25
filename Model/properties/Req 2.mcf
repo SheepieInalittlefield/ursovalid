@@ -65,7 +65,7 @@ forall P:Plane .
                      && [unassign(gate1, two)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, false, gate2Busy2)
                      && [unassign(gate2, one)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, gate1Busy2, false)
                      && [unassign(gate2, two)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, gate1Busy2, false)
-               && <!pressStop*><assign(runway,P)>true)
+               && <true*><assign(runway,P)>true)
                || (val(runwayOoO2 == true || (gate1OoO2 == true && gate2OoO2 == true)))
                || (val(runwayBusy2 == true || (gate1Busy2 == true && gate2Busy2 == true))))
 
