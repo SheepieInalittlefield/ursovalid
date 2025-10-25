@@ -53,7 +53,7 @@ locationStatus: Location -> LocStatus,
 occupiedStatus: Location -> Bool, 
 planeLocation: Plane -> Location, 
 planeDir: Plane -> PlaneDir) = (
-	(processedPlanes >= maxPlanes) -> (
+	(processedPlanes >= maxPlanes && !(exists L: Location . occupiedStatus(L) == true || locationStatus(L) == out_of_order)) -> (
 		pressStop
 		. pressStart
 		. Communications(maxPlanes, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
@@ -268,10 +268,10 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 );
 
 init 
-	hide(
-		{
-	commUnlockMutex,commLockMutex,commLocationStatus,commAssignment,commSensorUpdate
-	},
+	% hide(
+	% 	{
+	% commUnlockMutex,commLockMutex,commLocationStatus,commAssignment,commSensorUpdate
+	% },
 	allow( 
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
@@ -295,5 +295,5 @@ init
 				|| Mutex(runway) || Mutex(taxiway) || Mutex(gate1) || Mutex(gate2)
 
 		)
-	)
+	% )
 );

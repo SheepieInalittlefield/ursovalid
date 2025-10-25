@@ -68,5 +68,4 @@ forall P:Plane .
                      && <true>true)
                || (val(runwayOoO2 == true || (gate1OoO2 == true && gate2OoO2 == true)))
                || (val(runwayBusy2 == true || taxiwayBusy2 == true || (gate1Busy2 == true && gate2Busy2 == true))))
-
 )
