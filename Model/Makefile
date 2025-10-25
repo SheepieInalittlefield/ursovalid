@@ -3,7 +3,7 @@
 
 nproc := $(shell nproc)
 
-PROPERTY_FILE := properties/Requirement\ 5.mcf
+PROPERTY_FILE := properties/Requirement\ 7.mcf
 # PROPERTY_FILE := "properties/Gate1 can always get another sensor update from plane 1.mcf"
 
 # Usage:
