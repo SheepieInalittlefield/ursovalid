@@ -71,7 +71,7 @@ planeDir: Plane -> PlaneDir) = (
 	+ sum P: Plane . (
 		(planeLocation(P) == air && processedPlanes < maxPlanes) -> (
 			receiveRequest(P, land)
-			. (locationStatus(runway) == out_of_order || exists loc1, loc2: Location . loc1 != loc2 && locationStatus(loc1) == out_of_order && locationStatus(loc2) == out_of_order) -> (
+			. (locationStatus(runway) == out_of_order) -> (
 				sendResponse(P, redirect)
 				. Communications(processedPlanes = processedPlanes + 1 )
 			) <> ((exists P: Plane . planeDir(P) == leaving) || (occupiedStatus(runway) == true) || (occupiedStatus(taxiway) == true) || ((occupiedStatus(gate1) == true) && (occupiedStatus(gate2) == true))) -> (
@@ -236,7 +236,7 @@ planeDir: Plane -> PlaneDir) = (
 	)
 );
 
-proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus, stupidSensorUpdate: Bool) = (
+proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus, stupidSensorUpdate: Bool, restrictLocStatus: Bool) = (
     % loc has been assigned to a plane by central
 	
 	(loc == runway) -> (
@@ -327,15 +327,6 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			Loc()
 		)
 	)
-	. (status == operational && loc != taxiway) -> (
-		getLocStatus(loc, out_of_order)
-		. sendLocationStatus(loc, out_of_order)
-		. Loc(status = out_of_order)
-	) <> (status == out_of_order && loc != taxiway) -> (
-		getLocStatus(loc, operational)
-		. sendLocationStatus(loc, operational)
-		. Loc(status = operational)
-	)
 );
 
 init 
@@ -360,10 +351,10 @@ init
 			},
 			% process initialization
 			Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
-				|| Loc(runway, false, one, false, operational, false)
-				|| Loc(taxiway, false, one, false, operational, false)
-				|| Loc(gate1, false, one, false, operational, false)
-				|| Loc(gate2, false, one, false, operational, false)
+				|| Loc(runway, false, one, false, operational, false, false)
+				|| Loc(taxiway, false, one, false, operational, false, false)
+				|| Loc(gate1, false, one, false, operational, false, false)
+				|| Loc(gate2, false, one, false, operational, false, false)
 				|| Mutex(runway) || Mutex(taxiway) || Mutex(gate1) || Mutex(gate2)
 
 		)
