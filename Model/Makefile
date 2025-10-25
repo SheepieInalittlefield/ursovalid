@@ -1,32 +1,41 @@
-
-# Makefile for building the mCRL2 model
-
 nproc := $(shell nproc)
-
 PROPERTY_FILE ?= properties/Requirement 9.mcf
 VERBOSE ?= 1
 
+BUILD_DIR := out
+BASENAME := $(subst  ,_,$(patsubst %.mcf,%,$(notdir $(PROPERTY_FILE))))
+
+LPS_FILE          := $(BUILD_DIR)/model.lps
+LTS_FILE          := $(BUILD_DIR)/model.lts
+PBES_FILE         := $(BUILD_DIR)/$(BASENAME).pbes
+EVIDENCE_LTS_FILE := $(BUILD_DIR)/$(BASENAME).evidence.lts
+
+.PHONY: all lts pbes graph req clean
+
+# Default: Build the LTS and solve the PBES, but don't show the graph.
+all: pbes
+
+# Generates the state space (LTS) from the mCRL2 specification.
 lts:
-	mcrl22lps Model_spec.mcrl2 quercus.lps -lregular
-# 	lpsrewr -v -psimplify -Q0 quercus.lps quercus.lps
-# 	lpsparelm -v quercus.lps quercus.lps
-# 	lpssumelm -v quercus.lps quercus.lps
-# 	lpsconstelm -v quercus.lps quercus.lps
-# 	lpssuminst -v quercus.lps quercus.lps
-	lps2lts $(if $(filter 1,$(VERBOSE)),-v) --threads=$(nproc) quercus.lps quercus.lts --cached
-	ltsconvert $(if $(filter 1,$(VERBOSE)),-v) -ebranching-bisim quercus.lts quercus.lts
+	@$(MAKE) $(BUILD_DIR)
+	mcrl22lps Model_spec.mcrl2 "$(LPS_FILE)" -lregular
+	lps2lts $(if $(filter 1,$(VERBOSE)),-v) --threads=$(nproc) "$(LPS_FILE)" "$(LTS_FILE)" --cached
+	ltsconvert $(if $(filter 1,$(VERBOSE)),-v) -ebranching-bisim "$(LTS_FILE)" "$(LTS_FILE)"
 
-pbes:
-	lts2pbes $(if $(filter 1,$(VERBOSE)),-v) --counter-example -f"$(PROPERTY_FILE)" quercus.lts quercus.pbes -p
-	pbessolve $(if $(filter 1,$(VERBOSE)),-v) quercus.pbes -rjittyc --search-strategy=breadth-first --threads=$(nproc) -Q0 --file=quercus.lts --evidence-file=quercus.evidence.lts
+# Verifies the property and generates a counter-example.
+pbes: 
+	lts2pbes $(if $(filter 1,$(VERBOSE)),-v) --counter-example -f"$(PROPERTY_FILE)" "$(LTS_FILE)" "$(PBES_FILE)" -p
+	pbessolve $(if $(filter 1,$(VERBOSE)),-v) "$(PBES_FILE)" -rjittyc --search-strategy=breadth-first --threads=$(nproc) -Q0 --file="$(LTS_FILE)" --evidence-file="$(EVIDENCE_LTS_FILE)"
 
+# Displays the counter-example graph.
+graph:
+	ltsgraph "$(EVIDENCE_LTS_FILE)"
 
-
-graph: 
-	# lps2lts quercus.evidence.lps quercus.evidence.lts
-	ltsgraph quercus.evidence.lts
-
+# Convenience target to run full verification AND show the graph.
 req: pbes graph
 
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
 clean:
-	rm -f quercus.lps quercus.lts quercus.pbes quercus.evidence.lts jittyc*
+	rm -rf $(BUILD_DIR) jittyc* model.lps model.lts
