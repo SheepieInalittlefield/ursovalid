@@ -13,7 +13,7 @@ EVIDENCE_LTS_FILE := $(BUILD_DIR)/$(BASENAME).evidence.lts
 .PHONY: all lts pbes graph req clean
 
 # Default: Build the LTS and solve the PBES, but don't show the graph.
-all: pbes
+all: lts pbes
 
 # Generates the state space (LTS) from the mCRL2 specification.
 lts:
