@@ -1,0 +1,6 @@
+% If getLocStatus(L, OutOfOrder ) has occurred, assign(L, P) shall not occur
+% for any plane P until getLocStatus(L, Operational ) occurs.
+forall L : Location . 
+    [true*][getLocStatus(L, out_of_order)] 
+    forall P: Plane . 
+        !(<!getLocStatus(L, operational)*.assign(L, P)>true)
