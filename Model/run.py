@@ -1,81 +1,69 @@
 #!/usr/bin/env python3
 
 import os
-import subprocess
 import sys
+import subprocess
 
 def main():
-    """
-    Script to run 'make req' for all Requirement property files.
-    """
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} [-v] [pbes|graph] <req_num1> <req_num2> ...", file=sys.stderr)
+        print("       -v: Enable verbose 'make' output (sets VERBOSE=1).", file=sys.stderr)
+        print("       'pbes' is the default target if not specified.", file=sys.stderr)
+        sys.exit(1)
+
+    args = sys.argv[1:]
+
+    # Check for the verbose flag and remove it from the list for further processing
+    verbose_level = "0"
+    if "-v" in args:
+        verbose_level = "1"
+        args.remove("-v")
+
+    if not args:
+        print("Error: No target or requirement numbers provided.", file=sys.stderr)
+        sys.exit(1)
+
+    # Determine make target and requirement numbers from the remaining arguments
+    make_target = "pbes"  # Default target
+    req_num_args = args
+    if args[0] in ("pbes", "graph"):
+        make_target = args[0]
+        req_num_args = args[1:]
+
+    if not req_num_args:
+        print("Error: No requirement numbers provided.", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        req_numbers = {int(arg) for arg in req_num_args}
+    except ValueError:
+        print("Error: Requirement numbers must be integers.", file=sys.stderr)
+        sys.exit(1)
 
     properties_dir = "properties"
-
-    # Ensure the properties directory exists
-    if not os.path.isdir(properties_dir):
-        print(f"Error: '{properties_dir}' directory not found!", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Searching for property files in '{properties_dir}/' starting with 'Requirement'...")
-    print("------------------------------------------------------------------------")
-
     found_files = []
-    try:
-        # os.scandir is more efficient than os.listdir for checking file types
-        with os.scandir(properties_dir) as entries:
-            for entry in entries:
-                if entry.is_file() and entry.name.startswith("Requirement") and entry.name.endswith(".mcf"):
-                    found_files.append(entry.path)
-    except OSError as e:
-        print(f"Error accessing directory '{properties_dir}': {e}", file=sys.stderr)
-        sys.exit(1)
+    missing_numbers = []
+
+    for num in sorted(req_numbers):
+        path = os.path.join(properties_dir, f"Requirement {num}.mcf")
+        if os.path.isfile(path):
+            found_files.append(path)
+        else:
+            missing_numbers.append(num)
+
+    if missing_numbers:
+        print(f"Warning: No property files found for requirement(s): {', '.join(map(str, missing_numbers))}", file=sys.stderr)
 
     if not found_files:
-        print(f"No 'Requirement*.mcf' files found in '{properties_dir}/'.")
-        print("Script finished.")
-        return
+        print("No valid property files to process. Exiting.", file=sys.stderr)
+        sys.exit(1)
 
-    found_files.sort()  # Sort files for consistent processing order
     for prop_file in found_files:
-        print(f"Processing property file: '{prop_file}'")
+        print(f"\n--- Running 'make {make_target}' for: {prop_file} ---")
+        command = ["make", make_target, f"PROPERTY_FILE={prop_file}", f"VERBOSE={verbose_level}"]
+        subprocess.run(command, check=True)
 
-        try:
-            # Run 'make req' with the property file
-            # capture_output=True captures stdout and stderr
-            # text=True decodes stdout/stderr as text
-            # check=True will raise CalledProcessError if the command returns a non-zero exit code
-            result = subprocess.run(
-                ["make", "pbes", f"PROPERTY_FILE={prop_file}", "VERBOSE=0"],
-                capture_output=True,
-                text=True,
-                check=True  # This makes it raise an exception on error
-            )
-            print(result.stdout.strip()) # Print make's stdout
-            if result.stderr:
-                print(result.stderr.strip(), file=sys.stderr) # Print make's stderr, if any
-
-            print(f"Successfully processed '{prop_file}'.")
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error: 'make req' failed for '{prop_file}'.", file=sys.stderr)
-            print(f"Command: {e.cmd}", file=sys.stderr)
-            if e.stdout:
-                print(f"Stdout:\n{e.stdout.strip()}", file=sys.stderr)
-            if e.stderr:
-                print(f"Stderr:\n{e.stderr.strip()}", file=sys.stderr)
-            # Decide whether to exit here or continue
-            # For now, it continues like the shell script
-            # sys.exit(1) # Uncomment to exit on first error
-        except FileNotFoundError:
-            print(f"Error: 'make' command not found. Please ensure 'make' is installed and in your PATH.", file=sys.stderr)
-            sys.exit(1)
-        except Exception as e:
-            print(f"An unexpected error occurred while processing '{prop_file}': {e}", file=sys.stderr)
-            # sys.exit(1) # Uncomment to exit on first error
-
-        print("------------------------------------------------------------------------")
-
-    print("Script finished.")
+    print("\nScript finished.")
 
 if __name__ == "__main__":
     main()
