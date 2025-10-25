@@ -1,5 +1,5 @@
 nproc := $(shell nproc)
-PROPERTY_FILE ?= properties/Requirement 9.mcf
+PROPERTY_FILE ?= properties/No deadlocks.mcf
 VERBOSE ?= 1
 
 BUILD_DIR := out
@@ -26,6 +26,10 @@ lts:
 pbes: 
 	lts2pbes $(if $(filter 1,$(VERBOSE)),-v) --counter-example -f"$(PROPERTY_FILE)" "$(LTS_FILE)" "$(PBES_FILE)" -p
 	pbessolve $(if $(filter 1,$(VERBOSE)),-v) "$(PBES_FILE)" -rjittyc --search-strategy=breadth-first --threads=$(nproc) -Q0 --file="$(LTS_FILE)" --evidence-file="$(EVIDENCE_LTS_FILE)"
+
+pbesnoce: 
+	lts2pbes $(if $(filter 1,$(VERBOSE)),-v) -f"$(PROPERTY_FILE)" "$(LTS_FILE)" "$(PBES_FILE)" -p
+	pbessolve $(if $(filter 1,$(VERBOSE)),-v) "$(PBES_FILE)" -rjittyc --search-strategy=breadth-first --threads=$(nproc) -Q0 --file="$(LTS_FILE)"
 
 # Displays the counter-example graph.
 graph:
