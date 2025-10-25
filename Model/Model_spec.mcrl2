@@ -15,10 +15,12 @@ getSensorUpdate: Location # Plane;
 getLocStatus: Location # LocStatus;
 contactHelp;
 pressStart; pressStop;
+takeOff;
 
 sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocStatus;
 sendAssignment, receiveAssignment, commAssignment: Location # Plane # Bool;
 sendSensorUpdate, receiveSensorUpdate, commSensorUpdate: Location # Location # Plane;
+sendTakeOff, receiveTakeOff, commTakeOff;
 
 lockMutex, receiveLockMutex, commLockMutex: Location;
 unlockMutex, receiveUnlockMutex, commUnlockMutex: Location;
@@ -37,7 +39,7 @@ proc Mutex(t: Location) = (
 % );
 
 proc ProcessCommComms(maxPlanes: Nat, processedPlanes: Nat, locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location, planeDir: Plane -> PlaneDir) = (
-	sum L: Location, S: LocStatus . (
+	sum L: Location, S: LocStatus, P:Plane . (
 		% got unassigment update
 		receiveLocationStatus(L, S)
 		. Communications(locationStatus = locationStatus[L->S])
@@ -53,43 +55,63 @@ locationStatus: Location -> LocStatus,
 occupiedStatus: Location -> Bool, 
 planeLocation: Plane -> Location, 
 planeDir: Plane -> PlaneDir) = (
-	(processedPlanes >= maxPlanes && !(exists L: Location . occupiedStatus(L) == true || locationStatus(L) == out_of_order)) -> (
+	sum P: Plane . (
+		(planeDir(P) == leaving && planeLocation(P) == runway) -> (
+			takeOff
+			. unassign(runway, P)
+			. Communications(occupiedStatus = occupiedStatus[runway->false], planeLocation = planeLocation[P->air], planeDir = planeDir[P->steady])
+		)
+	)
+	+ (processedPlanes >= maxPlanes && !(exists L: Location . occupiedStatus(L) == true || locationStatus(L) == out_of_order)) -> (
 		pressStop
 		. pressStart
 		. Communications(maxPlanes, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
 	)
 	+ sum P: Plane . (
-		(planeLocation(P) == air && occupiedStatus(runway) == false && processedPlanes < maxPlanes) -> (
+		(planeLocation(P) == air && processedPlanes < maxPlanes) -> (
 			receiveRequest(P, land)
 			. (locationStatus(runway) == out_of_order || exists loc1, loc2: Location . loc1 != loc2 && locationStatus(loc1) == out_of_order && locationStatus(loc2) == out_of_order) -> (
 				sendResponse(P, redirect)
 				. Communications(processedPlanes = processedPlanes + 1 )
-			) <> (occupiedStatus(runway) == true || exists loc1, loc2: Location . loc1 != loc2 && occupiedStatus(loc1) == true && occupiedStatus(loc2) == true || exists p: Plane . planeDir(p) == leaving) -> (
+			) <> ((exists P: Plane . planeDir(P) == leaving) || (occupiedStatus(runway) == true) || (occupiedStatus(taxiway) == true) || ((occupiedStatus(gate1) == true) && (occupiedStatus(gate2) == true))) -> (
 				sendResponse(P, hold)
 				. Communications(processedPlanes = processedPlanes + 1)
 			) <> (
-				sendAssignment(runway, P, true)
+				pressStart
+				. sendAssignment(runway, P, true)
 				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
 				+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 				. sendAssignment(runway, P, true)
 				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
 			)
-        ) <> (((planeLocation(P) == gate1) || (planeLocation(P) == gate2)) && occupiedStatus(taxiway) == false && processedPlanes < maxPlanes) -> (
+        ) <> (((planeLocation(P) == gate1) || (planeLocation(P) == gate2)) && processedPlanes <= maxPlanes) -> (
 			receiveRequest(P, leave)
-			. (locationStatus(runway) == out_of_order || exists loc1, loc2: Location . loc1 != loc2 && locationStatus(loc1) == out_of_order && locationStatus(loc2) == out_of_order) -> (
+			. (locationStatus(runway) == out_of_order || (locationStatus(gate1) == out_of_order && locationStatus(gate2) == out_of_order)) -> (
 				sendResponse(P, hold)
 				. Communications(processedPlanes = processedPlanes + 1)
-			) <> (occupiedStatus(runway) == true || exists loc1, loc2: Location . loc1 != loc2 && occupiedStatus(loc1) == true && occupiedStatus(loc2) == true || exists P: Plane . planeDir(P) == landing) -> (
+			) <> ((exists P:Plane . planeDir(P) == landing) || occupiedStatus(taxiway) == true || occupiedStatus(runway) == true) -> (
 				sendResponse(P, hold)
 				. Communications(processedPlanes = processedPlanes + 1)
 			) <> (
-				sendAssignment(taxiway, P, true)
+				pressStart
+				. sendAssignment(taxiway, P, true)
 				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
 				+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 				. sendAssignment(taxiway, P, true)
 				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
 			)
-		)
+		) <> (processedPlanes >= maxPlanes
+			&& !(locationStatus(runway) == out_of_order || (locationStatus(gate1) == out_of_order && locationStatus(gate2) == out_of_order))
+			&& !((exists P:Plane . planeDir(P) == landing) || occupiedStatus(taxiway) == true || occupiedStatus(runway) == true)
+			&& ((planeLocation(P) == gate1) || (planeLocation(P) == gate2))) -> (
+				receiveRequest(P, leave)
+				. pressStart
+				. sendAssignment(taxiway, P, true)
+				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
+				+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
+				. sendAssignment(taxiway, P, true)
+				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
+			)
 		%  <> (
 		% 	sendResponse(P, postedcringe)
 		% 	. Communications()
@@ -97,77 +119,131 @@ planeDir: Plane -> PlaneDir) = (
     )
 	+ sum L: Location, P: Plane . (
 		% got unassigment update
-		receiveAssignment(L, P, false)
+		receiveAssignment(L, P, false) % this should happen but is not happening.
 		. unassign(L, P)
+		. sendTakeOff
 		. Communications(occupiedStatus = occupiedStatus[L->false])
 	)
-	+ sum P: Plane . (
-		% plane assigned to runway has arrived
-		( 
-			receiveSensorUpdate(runway, air, P)
-			. (planeDir(P) == landing) -> (
-				sendAssignment(taxiway, P, true) % Communications is waiting here for the taxiway process 
+	+ sum P: Plane, L:Location  . (
+		receiveSensorUpdate(L, air, P)
+		. (L == runway) -> (
+				(planeDir(P) == landing) -> (
+				sendAssignment(taxiway, P, true)
 				. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
 				+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
-				. sendAssignment(taxiway, P, true) % Communications is waiting here for the taxiway process 
+				. sendAssignment(taxiway, P, true)
 				. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
 			) <> (planeDir(P) == leaving) -> (
-				Communications(occupiedStatus = occupiedStatus[runway->true][taxiway->false], planeLocation = planeLocation[P->runway], planeDir = planeDir[P->leaving])
+				Communications(occupiedStatus = occupiedStatus[runway->true], planeLocation = planeLocation[P->runway], planeDir = planeDir[P->leaving])
 			)
-			% . DoAssignment(taxiway, P)
-
-		) + (
+		) <> (L == taxiway) -> (
 			% plane assigned to taxiway has arrived
-			receiveSensorUpdate(taxiway, air, P)
-			. (planeDir(P) == landing) -> (
+			(planeDir(P) == landing) -> (
 				(occupiedStatus(gate1) == false) -> (		
 					sendAssignment(gate1, P, true)
-					. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+					. Communications(occupiedStatus = occupiedStatus[gate1->true], planeLocation = planeLocation[P->taxiway])
 					+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 					. sendAssignment(gate1, P, true)
-					. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+					. Communications(occupiedStatus = occupiedStatus[gate1->true], planeLocation = planeLocation[P->taxiway])
 				) <> (occupiedStatus(gate1) == true) -> (
 					sendAssignment(gate2, P, true)
-					. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
+					. Communications(occupiedStatus = occupiedStatus[gate2->true], planeLocation = planeLocation[P->taxiway])
 					+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 					. sendAssignment(gate2, P, true)
-					. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
+					. Communications(occupiedStatus = occupiedStatus[gate2->true], planeLocation = planeLocation[P->taxiway])
 				)
 			)  <> (planeDir(P) == leaving) -> (
 				sendAssignment(runway, P, true)
 				. (planeLocation(P) == gate1) -> (
-					Communications(occupiedStatus = occupiedStatus[gate1->false][runway->true], planeLocation = planeLocation[P->taxiway])
+					Communications(occupiedStatus = occupiedStatus[gate1->false], planeLocation = planeLocation[P->taxiway])
 				) <> (planeLocation(P) == gate2) -> (
-					Communications(occupiedStatus = occupiedStatus[gate2->false][runway->true], planeLocation = planeLocation[P->taxiway])
+					Communications(occupiedStatus = occupiedStatus[gate2->false], planeLocation = planeLocation[P->taxiway])
 				)
 				+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 				. sendAssignment(runway, P, true)
 				. (planeLocation(P) == gate1) -> (
-					Communications(occupiedStatus = occupiedStatus[gate1->false][runway->true], planeLocation = planeLocation[P->taxiway])
+					Communications(occupiedStatus = occupiedStatus[gate1->false], planeLocation = planeLocation[P->taxiway])
 				) <> (planeLocation(P) == gate2) -> (
-					Communications(occupiedStatus = occupiedStatus[gate2->false][runway->true], planeLocation = planeLocation[P->taxiway])
+					Communications(occupiedStatus = occupiedStatus[gate2->false], planeLocation = planeLocation[P->taxiway])
 				)
 				
 			)
-		) + (
-			% plane assigned to gate1 has arrived
-			receiveSensorUpdate(gate1, air, P)
-			. Communications(occupiedStatus = occupiedStatus[gate1->true][taxiway->false], planeLocation = planeLocation[P->gate1], planeDir = planeDir[P->steady])
-		) + (
-			% plane assigned to gate2 has arrived
-			receiveSensorUpdate(gate2, air, P)
-			. Communications(occupiedStatus = occupiedStatus[gate2->true][taxiway->false], planeLocation = planeLocation[P->gate2], planeDir = planeDir[P->steady])
+		) <> (L == gate1) -> (
+			Communications(occupiedStatus = occupiedStatus[gate1->true], planeLocation = planeLocation[P->gate1], planeDir = planeDir[P->steady])
+		) <> (L == gate2) -> (
+			Communications(occupiedStatus = occupiedStatus[gate2->true], planeLocation = planeLocation[P->gate2], planeDir = planeDir[P->steady])
 		)
+		% % plane assigned to runway has arrived
+		% ( 
+		% 	receiveSensorUpdate(runway, air, P)
+		% 	. (planeDir(P) == landing) -> (
+		% 		sendAssignment(taxiway, P, true)
+		% 		. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
+		% 		+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
+		% 		. sendAssignment(taxiway, P, true)
+		% 		. Communications(occupiedStatus = occupiedStatus[taxiway->true], planeLocation = planeLocation[P->runway])
+		% 	) <> (planeDir(P) == leaving) -> (
+		% 		Communications(occupiedStatus = occupiedStatus[runway->true][taxiway->false], planeLocation = planeLocation[P->runway], planeDir = planeDir[P->leaving])
+		% 	)
+		% 	% . DoAssignment(taxiway, P)
+
+		% ) + (
+		% 	% plane assigned to taxiway has arrived
+		% 	receiveSensorUpdate(taxiway, air, P)
+		% 	. (planeDir(P) == landing) -> (
+		% 		(occupiedStatus(gate1) == false) -> (		
+		% 			sendAssignment(gate1, P, true)
+		% 			. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+		% 			+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
+		% 			. sendAssignment(gate1, P, true)
+		% 			. Communications(occupiedStatus = occupiedStatus[gate1->true][runway->false], planeLocation = planeLocation[P->taxiway])
+		% 		) <> (occupiedStatus(gate1) == true) -> (
+		% 			sendAssignment(gate2, P, true)
+		% 			. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
+		% 			+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
+		% 			. sendAssignment(gate2, P, true)
+		% 			. Communications(occupiedStatus = occupiedStatus[gate2->true][runway->false], planeLocation = planeLocation[P->taxiway])
+		% 		)
+		% 	)  <> (planeDir(P) == leaving) -> (
+		% 		sendAssignment(runway, P, true)
+		% 		. (planeLocation(P) == gate1) -> (
+		% 			Communications(occupiedStatus = occupiedStatus[gate1->false][runway->true], planeLocation = planeLocation[P->taxiway])
+		% 		) <> (planeLocation(P) == gate2) -> (
+		% 			Communications(occupiedStatus = occupiedStatus[gate2->false][runway->true], planeLocation = planeLocation[P->taxiway])
+		% 		)
+		% 		+ ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
+		% 		. sendAssignment(runway, P, true)
+		% 		. (planeLocation(P) == gate1) -> (
+		% 			Communications(occupiedStatus = occupiedStatus[gate1->false][runway->true], planeLocation = planeLocation[P->taxiway])
+		% 		) <> (planeLocation(P) == gate2) -> (
+		% 			Communications(occupiedStatus = occupiedStatus[gate2->false][runway->true], planeLocation = planeLocation[P->taxiway])
+		% 		)
+				
+		% 	)
+		% ) + (
+		% 	% plane assigned to gate1 has arrived
+		% 	receiveSensorUpdate(gate1, air, P)
+		% 	. Communications(occupiedStatus = occupiedStatus[gate1->true][taxiway->false], planeLocation = planeLocation[P->gate1], planeDir = planeDir[P->steady])
+		% ) + (
+		% 	% plane assigned to gate2 has arrived
+		% 	receiveSensorUpdate(gate2, air, P)
+		% 	. Communications(occupiedStatus = occupiedStatus[gate2->true][taxiway->false], planeLocation = planeLocation[P->gate2], planeDir = planeDir[P->steady])
+		% )
 	)
 	+ sum L: Location, S: LocStatus . (
-		% got unassigment update
+		% got location status update
 		ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
 	)
 );
 
 proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool, status: LocStatus, stupidSensorUpdate: Bool) = (
     % loc has been assigned to a plane by central
-	sum P: Plane . (
+	
+	(loc == runway) -> (
+	receiveTakeOff
+	. Loc(is_assigned=false, is_occupied=false) 
+	)
+	+ sum P: Plane . (
 		lockMutex(loc)
 		. (
 			unlockMutex(loc)
@@ -214,7 +290,7 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			) <> (loc == gate1) -> (
 				lockMutex(taxiway)
 				. sendSensorUpdate(loc, air, P)
-				. sendSensorUpdate(gate1, taxiway, P)
+				. sendSensorUpdate(gate1, taxiway, P) % Gate1 process is stuck here waiting for the taxiway process
 				. unlockMutex(taxiway)
 				. unlockMutex(gate1)
 				. Loc(is_occupied = true)
@@ -225,12 +301,7 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 				. unlockMutex(taxiway)
 				. unlockMutex(gate1)
 				. Loc(is_occupied = true, stupidSensorUpdate = false)
-			) <> (
-				% idk
-				tau
-				. Loc(stupidSensorUpdate = true)
 			)
-			
 		)
 	)
 	+ sum L: Location, P: Plane . (
@@ -242,7 +313,7 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			. Loc(is_assigned=false, is_occupied=false)
 		) <> (loc == taxiway && is_assigned && assigned_to == P && is_occupied == true) -> (
 			% left taxiway
-			sendAssignment(taxiway, P, false)
+			sendAssignment(taxiway, P, false) % Taxiway proces is stuck here waiting for communications
 			. Loc(is_assigned=false, is_occupied=false)
 		) <> (loc == gate1 && is_assigned && assigned_to == P && is_occupied == true) -> (
 			% left gate1
@@ -268,15 +339,15 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 );
 
 init 
-	% hide(
-	% 	{
-	% commUnlockMutex,commLockMutex,commLocationStatus,commAssignment,commSensorUpdate
-	% },
+	hide(
+		{
+	commUnlockMutex,commLockMutex
+	},
 	allow( 
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
 		getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, 
-		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, pressStop, pressStart },
+		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, pressStop, pressStart },
 		comm( 
 			% communication
 			{ 
@@ -284,7 +355,8 @@ init
 				sendAssignment|receiveAssignment-> commAssignment,
 				sendSensorUpdate|receiveSensorUpdate -> commSensorUpdate,
 				lockMutex|receiveLockMutex -> commLockMutex,
-				unlockMutex|receiveUnlockMutex -> commUnlockMutex
+				unlockMutex|receiveUnlockMutex -> commUnlockMutex,
+				sendTakeOff|receiveTakeOff -> commTakeOff
 			},
 			% process initialization
 			Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
@@ -295,5 +367,5 @@ init
 				|| Mutex(runway) || Mutex(taxiway) || Mutex(gate1) || Mutex(gate2)
 
 		)
-	% )
+	)
 );

@@ -3,7 +3,7 @@
 
 nproc := $(shell nproc)
 
-PROPERTY_FILE := properties/Requirement\ 2.mcf
+PROPERTY_FILE := properties/No\ deadlocks.mcf
 # PROPERTY_FILE := "properties/Gate1 can always get another sensor update from plane 1.mcf"
 
 # Usage:
@@ -27,7 +27,7 @@ all:
 # 	pbessolve quercus.pbes --search-strategy=breadth-first -v --threads=$(nproc) -Q0 --file=quercus.lps --evidence-file=quercus.evidence.lps -rjittyc
 
 lts:
-	mcrl22lps Model_spec.mcrl2 quercus.lps -lregular
+	mcrl22lps Model_spec.mcrl2 quercus.lps -lregular2
 	lps2lts -v --threads=$(nproc) quercus.lps quercus.lts --cached
 	ltsconvert -v -ebranching-bisim quercus.lts quercus.lts
 
