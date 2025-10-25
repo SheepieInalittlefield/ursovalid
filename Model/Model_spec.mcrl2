@@ -265,9 +265,9 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			. contactHelp
 			. Loc(stupidSensorUpdate = true)
 		) <> (is_assigned == true && assigned_to == P && is_occupied == false) -> (
-			getSensorUpdate(loc, P)
 			% good plane
-			. lockMutex(loc)
+			lockMutex(loc)
+			. getSensorUpdate(loc, P)
 			. (loc == runway) -> (
 				lockMutex(taxiway)
 				. sendSensorUpdate(loc, air, P)
