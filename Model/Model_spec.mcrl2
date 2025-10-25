@@ -32,7 +32,7 @@ proc Mutex(t: Location, locked: Bool) = (
 			. Mutex(t, false)
 		) <> (locked == false) -> (
 			receiveLockMutex(t)
-			. Mutex(t, false)
+			. Mutex(t, true)
 		)
 	)
 );
