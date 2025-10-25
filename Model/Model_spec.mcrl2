@@ -59,6 +59,7 @@ planeDir: Plane -> PlaneDir) = (
 		(planeDir(P) == leaving && planeLocation(P) == runway) -> (
 			takeOff
 			. unassign(runway, P)
+			. sendTakeOff
 			. Communications(occupiedStatus = occupiedStatus[runway->false], planeLocation = planeLocation[P->air], planeDir = planeDir[P->steady])
 		)
 	)
@@ -121,7 +122,6 @@ planeDir: Plane -> PlaneDir) = (
 		% got unassigment update
 		receiveAssignment(L, P, false) % this should happen but is not happening.
 		. unassign(L, P)
-		. sendTakeOff
 		. Communications(occupiedStatus = occupiedStatus[L->false])
 	)
 	+ sum P: Plane, L:Location  . (
