@@ -1,5 +1,5 @@
 nproc := $(shell nproc)
-PROPERTY_FILE ?= properties/No deadlocks.mcf
+PROPERTY_FILE ?= properties/Requirement 9.mcf
 VERBOSE ?= 1
 
 BUILD_DIR := out

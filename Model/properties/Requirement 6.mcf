@@ -12,18 +12,16 @@ forall L: Location, P:Plane .
                 unassign(taxiway, two) || unassign(gate1, one))]
              Y(runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
         && forall P2 : Plane . (
-            [assign(runway, P2)]Y(true, taxiwayBusy1, gate1Busy1, gate2Busy1))
+            [assign(runway, P2)]Y(true, taxiwayBusy1, gate1Busy1, gate2Busy1)
             && [assign(taxiway, P2)]Y(runwayBusy1, true, gate1Busy1, gate2Busy1)
             && [assign(gate1, P2)]Y(runwayBusy1, taxiwayBusy1, true, gate2Busy1)
             && [assign(gate2, P2)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, true)
             && [unassign(runway, P2)]Y(false, taxiwayBusy1, gate1Busy1, gate2Busy1)
             && [unassign(taxiway, P2)]Y(runwayBusy1, false, gate1Busy1, gate2Busy1)
             && [unassign(gate1, P2)]Y(runwayBusy1, taxiwayBusy1, false, gate2Busy1)
-            && [unassign(gate2, P2)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, false)
-        && [getSensorUpdate(L, P)]
-        (<true*><contactHelp>true)
-        || (
-         (val(L == runway) && val(runwayBusy1 == true))
+            && [unassign(gate2, P2)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, false))
+        && [getSensorUpdate(L, P)]mu X . (<true>true || [!contactHelp]X)
+         || (val(L == runway) && val(runwayBusy1 == true))
          || (val(L == gate1) && val(gate1Busy1 == true))
          || (val(L == gate2) && val(gate2Busy1 == true))
          || (val(L == taxiway) && val(taxiwayBusy1 == true))
@@ -52,4 +50,3 @@ forall L: Location, P:Plane .
             %       && <true>true)
             %    || (val(runwayOoO2 == true))
             %    || (val(runwayBusy2 == true || taxiwayBusy2 == true)))
-)

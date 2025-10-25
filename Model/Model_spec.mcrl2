@@ -4,7 +4,6 @@ LocStatus = struct out_of_order | operational;
 Location = struct gate1 | gate2 | taxiway | runway | air;
 Plane = struct one | two;
 PlaneDir = struct landing | leaving | steady;
-sort Location = struct gate1 | gate2| taxiway| runway| arrived
 
 % MutexType = struct RW_TW | TW_G1 | TW_G2;
 
@@ -91,7 +90,7 @@ planeDir: Plane -> PlaneDir) = (
 			. (locationStatus(runway) == out_of_order || (locationStatus(gate1) == out_of_order && locationStatus(gate2) == out_of_order)) -> (
 				sendResponse(P, hold)
 				. Communications(processedPlanes = processedPlanes + 1)
-			) <> ((exists P:Plane . planeDir(P) == landing) || occupiedStatus(taxiway) == true || occupiedStatus(runway) == true) -> (
+			) <> (occupiedStatus(taxiway) == true || occupiedStatus(runway) == true) -> (
 				sendResponse(P, hold)
 				. Communications(processedPlanes = processedPlanes + 1)
 			) <> (

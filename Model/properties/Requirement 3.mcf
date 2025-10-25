@@ -2,4 +2,4 @@
 %plane P, shall eventually be followed by a assign(gate1, P ) or assign(gate2,
 %P )
 forall P: Plane .
-    [true* . receiveRequest(P, land) . !assign(runway, P)* . assign(runway, P)]<true* . assign(gate1, P) || assign(gate2, P)>true
+    [true* . receiveRequest(P, land) . !assign(runway, P)* . assign(runway, P)]<true* . (assign(gate1, P) || assign(gate2, P))>true
