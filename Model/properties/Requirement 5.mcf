@@ -24,13 +24,13 @@ forall P:Plane .
 
         && forall P2 : Plane . (
             [assign(runway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, true, taxiwayBusy1, gate1Busy1, gate2Busy1))
-            && [assign(taxiway, P2)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, true, gate1Busy2, gate2Busy2)
-            && [assign(gate1, P2)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, true, gate2Busy2)
-            && [assign(gate2, P2)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, gate1Busy2, true)
-            && [unassign(runway, P2)]Y(runwayOoO2, gate1OoO2, gate2OoO2, false, taxiwayBusy2, gate1Busy2, gate2Busy2)
-            && [unassign(taxiway, P2)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, false, gate1Busy2, gate2Busy2)
-            && [unassign(gate1, P2)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, false, gate2Busy2)
-            && [unassign(gate2, P2)]Y(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, gate1Busy2, false)
+            && [assign(taxiway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, true, gate1Busy1, gate2Busy1)
+            && [assign(gate1, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, true, gate2Busy1)
+            && [assign(gate2, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, true)
+            && [unassign(runway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, false, taxiwayBusy1, gate1Busy1, gate2Busy1)
+            && [unassign(taxiway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, false, gate1Busy1, gate2Busy1)
+            && [unassign(gate1, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, false, gate2Busy1)
+            && [unassign(gate2, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, false)
          )
 
         && [receiveRequest(P, leave)] 
