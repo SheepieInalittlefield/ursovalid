@@ -5,8 +5,6 @@ Location = struct gate1 | gate2 | taxiway | runway | air;
 Plane = struct one | two;
 PlaneDir = struct landing | leaving | steady;
 
-% MutexType = struct RW_TW | TW_G1 | TW_G2;
-
 act receiveRequest: Plane # PlaneRequest;
 sendResponse: Plane # PlaneResponse;
 assign: Location # Plane;
@@ -332,7 +330,7 @@ init
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
 		getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, commResetMutex,
-		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, pressStop, pressStart, takeOff, dontcare },
+		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, pressStart, pressStop, takeOff, dontcare },
 		comm( 
 			% communication
 			{ 

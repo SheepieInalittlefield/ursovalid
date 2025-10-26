@@ -1,1 +1,1 @@
-forall L: Location, P: Plane . [commAssignment(L, P)]<assign(L, P)>true
+forall P: Plane . mu X . <!(assign(gate1,P) || assign(gate2, P))>X && <true>true

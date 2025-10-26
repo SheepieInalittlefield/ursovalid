@@ -1,0 +1,2 @@
+forall P:Plane . 
+[true* . receiveRequest(P, leave) . !assign(runway, P) . assign(runway, P) . !getSensorUpdate(runway, P) . getSensorUpdate(runway, P)]mu X . <!takeOff>X
