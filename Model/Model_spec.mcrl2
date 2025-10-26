@@ -40,30 +40,6 @@ proc Mutex(t: Location, locked: Bool) = (
 	)
 );
 
-% proc DoAssignment(location: Location, plane: Plane) = (
-% 	sendAssignment(location, plane, true)
-% 	% . assign(location, plane)
-% );
-
-% proc ProcessCommComms(maxPlanes: Nat, processedPlanes: Nat, locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location, planeDir: Plane -> PlaneDir) = (
-% 	sum L: Location, S: LocStatus, P:Plane . (
-% 		% got unassigment update
-% 		receiveLocationStatus(L, S)
-% 		. Communications(locationStatus = locationStatus[L->S])
-% 		)
-% );
-
-% proc ProcessCommComms(maxPlanes: Nat, processedPlanes: Nat, locationStatus: Location -> LocStatus, occupiedStatus: Location -> Bool, planeLocation: Plane -> Location, planeDir: Plane -> PlaneDir) = (
-% 	sum L: Location, P:Plane . (
-% 		% got unassigment update
-% 		receiveAssignment(L, P, false)
-% 		. unassign(L, P)
-% 		)
-% );
-
-% proc Reset()
-% 	Communications(lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.landing)
-
 proc Communications(maxPlanes: Nat, 
 processedPlanes: Nat,
 locationStatus: Location -> LocStatus, 
@@ -75,7 +51,7 @@ planeDir: Plane -> PlaneDir) = (
 			takeOff
 			. unassign(runway, P)
 			. sendTakeOff
-			. Communications(occupiedStatus = occupiedStatus[runway->false], planeLocation = planeLocation[P->air], planeDir = planeDir[P->steady], processedPlanes = processedPlanes + 1)
+			. Communications(occupiedStatus = occupiedStatus[runway->false], planeLocation = planeLocation[P->air], planeDir = planeDir[P->steady], processedPlanes = processedPlanes)
 		)
 	)
 	+ (processedPlanes >= maxPlanes && !(exists L: Location . occupiedStatus(L) == true || locationStatus(L) == out_of_order)) -> (
@@ -93,7 +69,7 @@ planeDir: Plane -> PlaneDir) = (
 		. Communications(maxPlanes, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
 	)
 	+ sum P: Plane . (
-		(planeLocation(P) == air && processedPlanes < maxPlanes) -> (
+		(planeLocation(P) == air && processedPlanes < maxPlanes && planeDir(P) == steady) -> (
 			receiveRequest(P, land)
 			. (locationStatus(runway) == out_of_order) -> (
 				sendResponse(P, redirect)
@@ -104,14 +80,8 @@ planeDir: Plane -> PlaneDir) = (
 			) <> (
 				sendAssignment(runway, P, true)
 				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
-				% + ProcessCommComms()
-				% . sendAssignment(runway, P, true)
-				% . Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[runway->true][L->false], planeDir = planeDir[P->landing])
-				% + ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
-				% . sendAssignment(runway, P, true)
-				% . Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[runway->true], planeDir = planeDir[P->landing])
 			)
-        ) <> (((planeLocation(P) == gate1) || (planeLocation(P) == gate2)) && processedPlanes < maxPlanes) -> (
+        ) <> (((planeLocation(P) == gate1) || (planeLocation(P) == gate2)) && processedPlanes < maxPlanes && planeDir(P) == steady) -> (
 			receiveRequest(P, leave)
 			. (locationStatus(runway) == out_of_order || (locationStatus(gate1) == out_of_order && locationStatus(gate2) == out_of_order)) -> (
 				sendResponse(P, hold)
@@ -122,12 +92,6 @@ planeDir: Plane -> PlaneDir) = (
 			) <> (
 				sendAssignment(taxiway, P, true)
 				. Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
-				% + ProcessCommComms()
-				% . sendAssignment(taxiway, P, true)
-				% . Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true][L->false], planeDir = planeDir[P->leaving])
-				% + ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
-				% . sendAssignment(taxiway, P, true)
-				% . Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
 			)
 		) <> (processedPlanes >= maxPlanes
 			&& !(locationStatus(runway) == out_of_order || (locationStatus(gate1) == out_of_order && locationStatus(gate2) == out_of_order))
@@ -136,14 +100,7 @@ planeDir: Plane -> PlaneDir) = (
 				receiveRequest(P, leave)
 				. sendAssignment(taxiway, P, true)
 				. Communications(processedPlanes = processedPlanes + 0, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
-				% + ProcessCommComms(maxPlanes, processedPlanes, locationStatus, occupiedStatus, planeLocation, planeDir)
-				% . sendAssignment(taxiway, P, true)
-				% . Communications(processedPlanes = processedPlanes + 1, occupiedStatus = occupiedStatus[taxiway->true], planeDir = planeDir[P->leaving])
 			)
-		%  <> (
-		% 	sendResponse(P, postedcringe)
-		% 	. Communications()
-		% )
     )
 	+ sum L1: Location, P1: Plane . (
 		% got unassigment update
@@ -238,7 +195,6 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			. Loc()
 			+ (
 			receiveAssignment(loc, P, true)
-			%% A getLocStatus that should disallow us from assigning this can occur here.
 			. assign(loc, P)
 			. unlockMutex(loc)
 			. Loc(is_assigned = true, assigned_to = P)
@@ -247,7 +203,7 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 		
 	)
 	+ sum P: Plane . (
-		((is_assigned == false || assigned_to != P) && stupidSensorUpdate != true) -> (
+		((is_assigned == false || assigned_to != P) && stupidSensorUpdate != true) -> ( % we only allow one invalid sensorUpdate per location per day to facilitate testing requirements, preventing infinite loops.
 			getSensorUpdate(loc, P)
 			. contactHelp
 			. Loc(stupidSensorUpdate = true)
@@ -314,8 +270,8 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 			. Loc(is_assigned=false, is_occupied=false)
 		) <> (
 			% dont care didnt ask
-			dontcare(loc)
-			. Loc()
+			%% dontcare(loc)
+			Loc()
 		)
 	)
 );

@@ -1,5 +1,5 @@
 nproc := $(shell nproc)
-PROPERTY_FILE ?= properties/nutest.mcf
+PROPERTY_FILE ?= properties/Requirement reset after 3.mcf
 VERBOSE ?= 1
 
 BUILD_DIR := out

@@ -1,0 +1,9 @@
+forall P:Plane . 
+    mu X(requestsHandled: Nat = 0) . (
+        [!(receiveRequest(P, land) || receiveRequest(P, leave) || pressStart)]X(requestsHandled)
+        && [receiveRequest(P, land)]X(requestsHandled + 1)
+        && [receiveRequest(P, leave)]X(requestsHandled + 1)
+        && <true>true
+        && [pressStart]X(0)
+        && [pressStop]val(requestsHandled >= 3)
+    )

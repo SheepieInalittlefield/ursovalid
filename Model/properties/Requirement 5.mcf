@@ -1,6 +1,7 @@
 % If a plane must pass a taxiway to reach its destination, the controller
 % shall eventually allow the plane to access the taxiway before allowing it to
 % access its destination
-% TODO: combine this with the leave variant
 forall P: Plane .
     [true* . receiveRequest(P, land) . !assign(runway, P)* . assign(runway, P)]<true* . (assign(gate1, P) || assign(gate2, P))>true
+    && 
+    [true* . receiveRequest(P, leave) . !assign(taxiway, P)* . assign(taxiway, P)]<true* . assign(runway, P)>true

@@ -1,7 +1,7 @@
 % If a plane is in a location it is not allowed to be, the controller shall call
 % for help.
 forall L: Location, P:Plane .
-   nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) .
+   mu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) .
           (
              [!(
                 assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||

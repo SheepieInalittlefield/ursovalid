@@ -1,3 +1,16 @@
 % The controller shall eventually allow a landed plane to access a gate.
 forall P: Plane .
-    [true* . receiveRequest(P, land) . !(assign(runway, P) || receiveRequest(P, land))* . assign(runway, P)]mu X . <!(assign(gate1,P) || assign(gate2, P))>X && <true>true
+    [true* . receiveRequest(P, land) . !assign(runway, P)* . assign(runway, P)]mu X . ([!(assign(gate1, P) || assign(gate2, P))]X && <true>true)
+
+% forall P: Plane . (
+%     [true* . receiveRequest(P, land)]
+%     mu X(is_assigned: Bool = false, is_landed: Bool = false) . (
+%         [!(
+%             assign(runway, P) || getSensorUpdate(runway, P) || assign(gate1, P) || assign(gate2, P)
+%         )]X(is_assigned, is_landed)
+%         && [assign(runway,  P)]X(true, is_landed)
+%         && [getSensorUpdate(runway, P)]X(is_assigned, (is_assigned && true)) % only set is_landed to true if is_assigned is also true.
+%         && <true>true
+%         || !val(is_assigned && is_landed)
+%     )
+% )
