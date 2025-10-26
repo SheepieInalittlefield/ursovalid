@@ -1,2 +1,2 @@
 # ursovalid
-all systems are great and valid
+all systems are ungreat and invalid
