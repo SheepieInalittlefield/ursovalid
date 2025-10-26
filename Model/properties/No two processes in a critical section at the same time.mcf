@@ -1,2 +1,2 @@
 forall L: Location . 
-	[true* . receiveLockMutex(L) . !receiveUnlockMutex(L) . receiveLockMutex(L)]false
+	[true* . commLockMutex(L) . !commUnlockMutex(L) . commLockMutex(L)]false

@@ -1,41 +1,48 @@
 % For any sequence of states after a receiveRequest(P, leave), assign must always be possible (in finite time).
 % Unless runwayOoO or gate1 and gate2 OoO
+
+
+
+
+%%%  OUT OF DATE NOT USEFUL.
+
+
+
+
 forall P:Plane .
    nu Y(runwayOoO1: Bool = false, gate1OoO1: Bool = false, gate2OoO1: Bool = false, runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) .
           (
              [!(
-                getLocStatus(runway, out_of_order) || getLocStatus(runway, operational) ||
                 assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
-                assign(taxiway, two) || assign(gate1, one) ||
+                assign(taxiway, two) || assign(gate1, one) || assign(gate1, two) || 
+                assign(gate2, one) || assign(gate2, two) ||
                 unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
-                unassign(taxiway, two) || unassign(gate1, one))]
-             Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
-        && [getLocStatus(runway, out_of_order)]Y(true, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
-        && [getLocStatus(runway, operational)]Y(false, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
+                unassign(taxiway, two) || unassign(gate1, one)  || unassign(gate1, two) || 
+                unassign(gate2, one) || unassign(gate2, two))]
+             Y(runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
 
         && forall P2 : Plane . (
-            [assign(runway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, true, taxiwayBusy1, gate1Busy1, gate2Busy1))
-            && [assign(taxiway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, true, gate1Busy1, gate2Busy1)
-            && [assign(gate1, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, true, gate2Busy1)
-            && [assign(gate2, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, true)
-            && [unassign(runway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, false, taxiwayBusy1, gate1Busy1, gate2Busy1)
-            && [unassign(taxiway, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, false, gate1Busy1, gate2Busy1)
-            && [unassign(gate1, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, false, gate2Busy1)
-            && [unassign(gate2, P2)]Y(runwayOoO1, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, false)
+            [assign(runway, P2)]Y(true, taxiwayBusy1, gate1Busy1, gate2Busy1))
+            && [assign(taxiway, P2)]Y(runwayBusy1, true, gate1Busy1, gate2Busy1)
+            && [assign(gate1, P2)]Y(runwayBusy1, taxiwayBusy1, true, gate2Busy1)
+            && [assign(gate2, P2)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, true)
+            && [unassign(runway, P2)]Y(false, taxiwayBusy1, gate1Busy1, gate2Busy1)
+            && [unassign(taxiway, P2)]Y(runwayBusy1, false, gate1Busy1, gate2Busy1)
+            && [unassign(gate1, P2)]Y(runwayBusy1, taxiwayBusy1, false, gate2Busy1)
+            && [unassign(gate2, P2)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, false)
          )
 
         && [receiveRequest(P, leave)] 
              mu X(runwayOoO2: Bool = runwayOoO1, gate1OoO2: Bool = gate1OoO1, gate2OoO2: Bool = gate2OoO1, runwayBusy2: Bool = runwayBusy1, taxiwayBusy2: Bool = taxiwayBusy1, gate1Busy2: Bool = gate1Busy1, gate2Busy2: Bool = gate2Busy1) .
                ((
                   ([!(
-                     getLocStatus(runway, out_of_order) || getLocStatus(runway, operational) ||
-                     assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
-                     assign(taxiway, two) || assign(gate1, one) ||
-                     unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
-                     unassign(taxiway, two) || unassign(gate1, one))]
-                  X(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, taxiwayBusy2, gate1Busy2, gate2Busy2)
-                  && [getLocStatus(runway, out_of_order)]X(true, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
-                  && [getLocStatus(runway, operational)]X(false, gate1OoO1, gate2OoO1, runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
+                        assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
+                        assign(taxiway, two) || assign(gate1, one) || assign(gate1, two) || 
+                        assign(gate2, one) || assign(gate2, two) ||
+                        unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
+                        unassign(taxiway, two) || unassign(gate1, one)  || unassign(gate1, two) || 
+                        unassign(gate2, one) || unassign(gate2, two))]
+                  X(runwayBusy2, taxiwayBusy2, gate1Busy2, gate2Busy2)
 
                   && forall P2 : Plane . (
                      [assign(taxiway, P2)]X(runwayOoO2, gate1OoO2, gate2OoO2, runwayBusy2, true, gate1Busy2, gate2Busy2)

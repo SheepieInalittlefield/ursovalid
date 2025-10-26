@@ -3,11 +3,12 @@
 forall P:Plane .
    nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) .
           (
-             [!(
-                assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
-                assign(taxiway, two) || assign(gate1, one) ||
-                unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
-                unassign(taxiway, two) || unassign(gate1, one))]
+             [!(assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
+               assign(taxiway, two) || assign(gate1, one) || assign(gate1, two) ||
+               assign(gate2, one) || assign(gate2, two) ||
+               unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
+               unassign(taxiway, two) || unassign(gate1, one) || unassign(gate1, two) ||
+               unassign(gate2, one) || unassign(gate2, two))]
              Y(runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
         && forall P2 : Plane . (
             [assign(runway, P2)]Y(true, taxiwayBusy1, gate1Busy1, gate2Busy1))
@@ -25,9 +26,11 @@ forall P:Plane .
                ((
                   ([!(sendResponse(P, hold) ||
                      assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
-                     assign(taxiway, two) || assign(gate1, one) ||
+                     assign(taxiway, two) || assign(gate1, one) || assign(gate1, two) ||
+                     assign(gate2, one) || assign(gate2, two) ||
                      unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
-                     unassign(taxiway, two) || unassign(gate1, one))]
+                     unassign(taxiway, two) || unassign(gate1, one) || unassign(gate1, two) ||
+                     unassign(gate2, one) || unassign(gate2, two))]
                   X(runwayBusy2, taxiwayBusy2, gate1Busy2, gate2Busy2)
 
                   && forall P2 : Plane . (
