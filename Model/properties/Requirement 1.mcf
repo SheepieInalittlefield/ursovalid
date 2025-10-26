@@ -1,2 +1,3 @@
+% The controller shall not allow two planes to be in the same location
 forall L: Location, P,Q: Plane . 
 	[true* . assign(L, P) . !unassign(L, P)* . assign(L, Q)]val(P == Q)

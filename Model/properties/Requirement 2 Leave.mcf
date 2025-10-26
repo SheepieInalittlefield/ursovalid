@@ -1,5 +1,5 @@
-% For any sequence of states after a receiveRequest(P, land), assign must always be possible (in finite time).
-% Unless runwayOoO or gate1 and gate2 OoO
+% For any sequence of states after a receiveRequest(P, leave), assign(taxiway) must always be possible (in finite time), unless the runway is busy
+% or the taxiway is busy.
 forall P:Plane .
    nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) .
           (
@@ -46,5 +46,5 @@ forall P:Plane .
                      [assign(taxiway, P2)]X(runwayBusy2, true, gate1Busy2, gate2Busy2))
                   )
                   && <true>true)
-               || (val(runwayBusy2 == true || taxiwayBusy2 == true || (gate1Busy2 == true && gate2Busy2 == true))))
+               || (val(runwayBusy2 == true || taxiwayBusy2 == true)))
 )

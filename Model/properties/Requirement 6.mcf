@@ -1,7 +1,5 @@
-% If the action getSensorUpdate(L, P) occurs with a location L and plane
-% P, and no assign(L, P) action has occured, or an unassign(L, P ) has
-% occured with no following assign(L, P ) action, the contactHelp action
-% shall be performed.
+% If a plane is in a location it is not allowed to be, the controller shall call
+% for help.
 forall L: Location, P:Plane .
    nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) .
           (

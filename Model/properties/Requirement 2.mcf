@@ -1,5 +1,5 @@
-% For any sequence of states after a receiveRequest(P, land), assign must always be possible (in finite time).
-% Unless runwayOoO or gate1 and gate2 OoO
+% For any sequence of states after a receiveRequest(P, land), assign(runway) must always be possible (in finite time), unless the runway is busy
+% or the taxiway is busy, or all gates are busy.
 forall P:Plane .
    nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) .
           (
