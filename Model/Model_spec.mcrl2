@@ -298,7 +298,7 @@ init
                 sendStart|receiveStart -> commStart
             },
             % process initialization
-            pressStart .
+            start .
             Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
                 || Loc(runway, false, one, false, operational, false)
                 || Loc(taxiway, false, one, false, operational, false)
