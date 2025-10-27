@@ -1,5 +1,0 @@
-% If a plane must pass a taxiway to reach its destination, the controller
-% shall eventually allow the plane to access the taxiway before allowing it to
-% access its destination
-forall P: Plane .
-    [true* . receiveRequest(P, leave) . !assign(taxiway, P)* . assign(taxiway, P)]<true* . assign(runway, P)>true

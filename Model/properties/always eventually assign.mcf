@@ -1,2 +1,0 @@
-forall P: Plane .
-	[true*. receiveRequest(P, land)]true

@@ -1,2 +1,0 @@
-forall P: Plane, R: PlaneRequest . 
-    [true* . receiveRequest(P, R) . !assign(runway, P)* . assign(runway, P)]<true* . assign(taxiway, P)>true

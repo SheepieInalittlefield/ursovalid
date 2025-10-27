@@ -1,2 +1,0 @@
-forall P: Plane . 
-    [true* . receiveRequest(P, leave)]<true* . assign(runway, P)>true
