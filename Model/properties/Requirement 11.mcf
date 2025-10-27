@@ -20,7 +20,7 @@ nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = f
       && [unassign(gate2, P)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, false)
    % )
    && [getSensorUpdate(L, P)]mu X . (
-      (<!pressStop>true && [!contactHelp]X)
+      (<!stop>true && [!contactHelp]X)
       || (val(L == runway) && val(runwayBusy1 == true))
       || (val(L == gate1) && val(gate1Busy1 == true))
       || (val(L == gate2) && val(gate2Busy1 == true))

@@ -7,7 +7,7 @@ gate1Busy1: Bool = false, gate2Busy1: Bool = false) . (
       assign(gate2, one) || assign(gate2, two) ||
       unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
       unassign(taxiway, two) || unassign(gate1, one) || unassign(gate1, two) ||
-      unassign(gate2, one) ||unassign(gate2, two) || pressStop
+      unassign(gate2, one) ||unassign(gate2, two) || stop
    )] Y(runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
    && forall P2 : Plane . (
       [assign(runway, P2)]Y(true, taxiwayBusy1, gate1Busy1, gate2Busy1)
@@ -19,5 +19,5 @@ gate1Busy1: Bool = false, gate2Busy1: Bool = false) . (
       && [unassign(gate1, P2)]Y(runwayBusy1, taxiwayBusy1, false, gate2Busy1)
       && [unassign(gate2, P2)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, false)
    )
-   && [pressStop]val(!runwayBusy1 && !taxiwayBusy1 && !gate1Busy1 && !gate2Busy1)
+   && [stop]val(!runwayBusy1 && !taxiwayBusy1 && !gate1Busy1 && !gate2Busy1)
 )

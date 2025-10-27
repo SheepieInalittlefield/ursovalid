@@ -5,6 +5,6 @@ mu X(requestsHandled: Nat = 0) . (
     && [receiveRequest(two, land)]X(requestsHandled + 1)
     && [receiveRequest(two, leave)]X(requestsHandled + 1)
     && <true>true
-    && [pressStart]X(0)
-    && [pressStop]val(requestsHandled >= 3)
+    && [start]X(0)
+    && [stop]val(requestsHandled >= 3)
 )
