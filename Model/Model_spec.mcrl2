@@ -14,7 +14,7 @@ getLocStatus: Location # LocStatus;
 contactHelp;
 start; stop;
 takeOff: Plane;
-dontcare: Location; 
+% dontcare: Location; 
 
 sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocStatus;
 sendAssignment, receiveAssignment, commAssignment: Location # Plane # Bool;
@@ -286,7 +286,7 @@ init
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
 		getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, commResetMutex,
-		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, start, stop, takeOff, dontcare },
+		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, start, stop, takeOff },
 		comm( 
 			% communication
 			{ 
