@@ -1,4 +1,0 @@
-forall L:Location . 
-    nu X . <true>X
-    &&
-    ![(commUnlockMutex(L) + commLockMutex(L))*]nu Y . <!(commLockMutex(L) || commUnlockMutex(L))>Y 
