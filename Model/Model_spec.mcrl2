@@ -274,11 +274,6 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 );
 
 init 
-    hide(
-        {
-    commUnlockMutex,commLockMutex,commResetMutex,
-    commAssignment, commSensorUpdate,commTakeOff,commStop,commStart
-    },
     allow( 
         % initial actions
         { receiveRequest, sendResponse, assign, unassign, 

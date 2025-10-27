@@ -1,5 +1,5 @@
 nproc := $(shell nproc)
-PROPERTY_FILE ?= properties/Requirement Only take off from runway.mcf
+PROPERTY_FILE ?= properties/nutest.mcf
 VERBOSE ?= 1
 
 BUILD_DIR := out

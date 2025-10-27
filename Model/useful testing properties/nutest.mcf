@@ -1,1 +1,2 @@
-[true*]nu X . <true>X
+forall L:Location . 
+[true*]nu X . <commLockMutex(L) + commUnlockMutex(L)>X
