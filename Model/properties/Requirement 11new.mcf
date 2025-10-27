@@ -1,0 +1,29 @@
+% If a plane is in a location it is not allowed to be, the controller shall call for help.
+forall L: Location, P:Plane .
+nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, gate1Busy1: Bool = false, gate2Busy1: Bool = false) . (
+   [!(
+      assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
+      assign(taxiway, two) || assign(gate1, one) || assign(gate1, two) ||
+      assign(gate2, one) || assign(gate2, two) ||
+      unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
+      unassign(taxiway, two) || unassign(gate1, one) || unassign(gate1, two) || 
+      unassign(gate2, one) || unassign(gate2, two)
+   )]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
+   % && forall P2 : Plane . (
+      && [assign(runway, P)]Y(true, taxiwayBusy1, gate1Busy1, gate2Busy1)
+      && [assign(taxiway, P)]Y(runwayBusy1, true, gate1Busy1, gate2Busy1)
+      && [assign(gate1, P)]Y(runwayBusy1, taxiwayBusy1, true, gate2Busy1)
+      && [assign(gate2, P)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, true)
+      && [unassign(runway, P)]Y(false, taxiwayBusy1, gate1Busy1, gate2Busy1)
+      && [unassign(taxiway, P)]Y(runwayBusy1, false, gate1Busy1, gate2Busy1)
+      && [unassign(gate1, P)]Y(runwayBusy1, taxiwayBusy1, false, gate2Busy1)
+      && [unassign(gate2, P)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, false)
+   % )
+   && [getSensorUpdate(L, P)]mu X . (
+      (<!pressStop>true && [!contactHelp]X)
+      || (val(L == runway) && val(runwayBusy1 == true))
+      || (val(L == gate1) && val(gate1Busy1 == true))
+      || (val(L == gate2) && val(gate2Busy1 == true))
+      || (val(L == taxiway) && val(taxiwayBusy1 == true))
+   )
+)
