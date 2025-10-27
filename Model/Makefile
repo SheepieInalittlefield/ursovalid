@@ -29,7 +29,7 @@ pbes:
 
 pbesnoce: 
 	lts2pbes $(if $(filter 1,$(VERBOSE)),-v) -f"$(PROPERTY_FILE)" "$(LTS_FILE)" "$(PBES_FILE)" -p
-	pbessolve $(if $(filter 1,$(VERBOSE)),-v) "$(PBES_FILE)" -rjittyc --search-strategy=breadth-first --threads=$(nproc) -Q0 --file="$(LTS_FILE)"
+	pbessolve $(if $(filter 1,$(VERBOSE)),-v) "$(PBES_FILE)" -rjittyc --search-strategy=breadth-first --threads=$(nproc) -Q0
 
 # Displays the counter-example graph.
 graph:

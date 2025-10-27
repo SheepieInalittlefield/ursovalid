@@ -24,9 +24,9 @@ def main():
         sys.exit(1)
 
     # Determine make target and requirement numbers from the remaining arguments
-    make_target = "pbes"  # Default target
+    make_target = "pbesnoce"  # Default target
     req_num_args = args
-    if args[0] in ("pbes", "graph"):
+    if args[0] in ("pbes", "graph", "pbesnoce"):
         make_target = args[0]
         req_num_args = args[1:]
 
@@ -45,7 +45,7 @@ def main():
     missing_numbers = []
 
     for num in sorted(req_numbers):
-        path = os.path.join(properties_dir, f"Requirement {num}.mcf")
+        path = os.path.join(properties_dir, f"Requirement {num}new.mcf")
         if os.path.isfile(path):
             found_files.append(path)
         else:
