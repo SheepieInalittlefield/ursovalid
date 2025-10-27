@@ -55,13 +55,13 @@ planeDir: Plane -> PlaneDir) = (
 		)
 	)
 	+ (processedPlanes >= maxPlanes && !(exists L: Location . occupiedStatus(L) == true || locationStatus(L) == out_of_order)) -> (
-		pressStop
+		stop
 		. sendStop(runway)
 		. sendStop(taxiway)
 		. sendStop(gate1)
 		. sendStop(gate2)
 		. resetMutex(runway) . resetMutex(taxiway) . resetMutex(gate1) . resetMutex(gate2)
-		. pressStart
+		. start
 		. sendStart(runway)
 		. sendStart(taxiway)
 		. sendStart(gate1)
@@ -286,7 +286,7 @@ init
 		% initial actions
 		{ receiveRequest, sendResponse, assign, unassign, 
 		getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, commResetMutex,
-		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, pressStart, pressStop, takeOff, dontcare },
+		commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, start, stop, takeOff, dontcare },
 		comm( 
 			% communication
 			{ 
