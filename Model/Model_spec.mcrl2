@@ -12,7 +12,7 @@ unassign: Location # Plane;
 getSensorUpdate: Location # Plane;
 getLocStatus: Location # LocStatus;
 contactHelp;
-pressStart; pressStop;
+start; stop;
 takeOff: Plane;
 dontcare: Location; 
 
