@@ -1,5 +1,5 @@
 mu X(requestsHandled: Nat = 0) . (
-    [!(receiveRequest(one, land) || receiveRequest(one, leave) || receiveRequest(two, land) || receiveRequest(two, leave) || pressStart || pressStop)]X(requestsHandled)
+    [!(receiveRequest(one, land) || receiveRequest(one, leave) || receiveRequest(two, land) || receiveRequest(two, leave) || start || stop)]X(requestsHandled)
     && [receiveRequest(one, land)]X(requestsHandled + 1)
     && [receiveRequest(one, leave)]X(requestsHandled + 1)
     && [receiveRequest(two, land)]X(requestsHandled + 1)
