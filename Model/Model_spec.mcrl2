@@ -13,7 +13,7 @@ getSensorUpdate: Location # Plane;
 getLocStatus: Location # LocStatus;
 contactHelp;
 pressStart; pressStop;
-takeOff;
+takeOff: Plane;
 dontcare: Location; 
 
 sendLocationStatus, receiveLocationStatus, commLocationStatus: Location # LocStatus;
@@ -48,7 +48,7 @@ planeLocation: Plane -> Location,
 planeDir: Plane -> PlaneDir) = (
 	sum P: Plane . (
 		(planeDir(P) == leaving && planeLocation(P) == runway) -> (
-			takeOff
+			takeOff(P)
 			. unassign(runway, P)
 			. sendTakeOff
 			. Communications(occupiedStatus = occupiedStatus[runway->false], planeLocation = planeLocation[P->air], planeDir = planeDir[P->steady], processedPlanes = processedPlanes)
@@ -279,8 +279,8 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
 init 
 	hide(
 		{
-	commUnlockMutex,commLockMutex,commResetMutex
-	% commAssignment, commSensorUpdate,commTakeOff,commStop,commStart
+	commUnlockMutex,commLockMutex,commResetMutex,
+	commAssignment, commSensorUpdate,commTakeOff,commStop,commStart
 	},
 	allow( 
 		% initial actions

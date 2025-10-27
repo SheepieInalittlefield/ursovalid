@@ -8,8 +8,6 @@
   <property>Requirement 1</property>
   <property>Requirement 4</property>
   <property>Requirement 5</property>
-  <property>Test</property>
-  <property>Unassign</property>
   <property>Start Happens</property>
  </properties>
  <jittyc>false</jittyc>
