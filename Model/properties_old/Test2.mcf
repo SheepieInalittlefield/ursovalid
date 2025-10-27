@@ -1,0 +1,1 @@
+forall P: Plane . mu X . <!(assign(gate1,P) || assign(gate2, P))>X && <true>true

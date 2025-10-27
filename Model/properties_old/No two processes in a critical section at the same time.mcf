@@ -1,0 +1,2 @@
+forall L: Location . 
+	[true* . commLockMutex(L) . !commUnlockMutex(L) . commLockMutex(L)]false

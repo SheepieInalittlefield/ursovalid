@@ -1,0 +1,3 @@
+% The controller shall eventually allow a departing plane to access the runway.
+forall P: Plane . 
+    [true* . receiveRequest(P, land) . !assign(runway, P)* . assign(runway, P) . !(assign(gate1, P) || assign(gate2, P))* . (assign(gate1, P) || assign(gate2, P)) . !receiveRequest(P, leave) . receiveRequest(P, leave)] mu X . (<true>true && [!assign(runway, P)]X) 

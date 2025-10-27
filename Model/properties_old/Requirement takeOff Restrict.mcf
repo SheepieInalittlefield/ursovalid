@@ -1,0 +1,3 @@
+% The controller shall only allow a plane to take off if it is on the runway.
+forall P:Plane . 
+!<true* . receiveRequest(P, leave) . !assign(runway, P) . assign(runway, P) . !getSensorUpdate(runway, P) . getSensorUpdate(runway, P) . !takeOff* .takeOff>false
