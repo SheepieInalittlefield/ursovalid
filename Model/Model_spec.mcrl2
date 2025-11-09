@@ -280,7 +280,7 @@ init (
             % initial actions
             { receiveRequest, sendResponse, assign, unassign, 
             getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, commResetMutex,
-            commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, start, stop, takeOff },
+            commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, start, stop, takeOff},
             comm( 
                 % communication
                 { 

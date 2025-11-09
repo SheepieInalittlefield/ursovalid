@@ -1,5 +1,5 @@
 nproc := $(shell nproc)
-PROPERTY_FILE ?= properties/nutest.mcf
+PROPERTY_FILE ?= properties/Requirement 8.mcf
 VERBOSE ?= 1
 
 BUILD_DIR := out
