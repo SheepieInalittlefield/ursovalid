@@ -273,34 +273,37 @@ proc Loc(loc: Location, is_assigned: Bool, assigned_to: Plane, is_occupied: Bool
     )
 );
 
-init 
-    allow( 
-        % initial actions
-        { receiveRequest, sendResponse, assign, unassign, 
-        getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, commResetMutex,
-        commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, start, stop, takeOff },
-        comm( 
-            % communication
-            { 
-                sendLocationStatus|receiveLocationStatus -> commLocationStatus,
-                sendAssignment|receiveAssignment-> commAssignment,
-                sendSensorUpdate|receiveSensorUpdate -> commSensorUpdate,
-                lockMutex|receiveLockMutex -> commLockMutex,
-                unlockMutex|receiveUnlockMutex -> commUnlockMutex,
-                resetMutex|receiveResetMutex -> commResetMutex,
-                sendTakeOff|receiveTakeOff -> commTakeOff,
-                sendStop|receiveStop -> commStop,
-                sendStart|receiveStart -> commStart
-            },
-            % process initialization
-            start .
-            Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
-                || Loc(runway, false, one, false, operational, false)
-                || Loc(taxiway, false, one, false, operational, false)
-                || Loc(gate1, false, one, false, operational, false)
-                || Loc(gate2, false, one, false, operational, false)
-                || Mutex(runway, false) || Mutex(taxiway, false) || Mutex(gate1, false) || Mutex(gate2, false)
+init (
+    hide (
+        {commLocationStatus, commResetMutex, commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart},
+        allow ( 
+            % initial actions
+            { receiveRequest, sendResponse, assign, unassign, 
+            getSensorUpdate, getLocStatus, contactHelp, commLocationStatus, commResetMutex,
+            commAssignment, commSensorUpdate, commLockMutex, commUnlockMutex, commTakeOff, commStop, commStart, start, stop, takeOff },
+            comm( 
+                % communication
+                { 
+                    sendLocationStatus|receiveLocationStatus -> commLocationStatus,
+                    sendAssignment|receiveAssignment-> commAssignment,
+                    sendSensorUpdate|receiveSensorUpdate -> commSensorUpdate,
+                    lockMutex|receiveLockMutex -> commLockMutex,
+                    unlockMutex|receiveUnlockMutex -> commUnlockMutex,
+                    resetMutex|receiveResetMutex -> commResetMutex,
+                    sendTakeOff|receiveTakeOff -> commTakeOff,
+                    sendStop|receiveStop -> commStop,
+                    sendStart|receiveStart -> commStart
+                },
+                % process initialization
+                start .
+                Communications(3, 0, lambda l: Location.operational, lambda i: Location.false, lambda j: Plane.air, lambda k: Plane.steady)
+                    || Loc(runway, false, one, false, operational, false)
+                    || Loc(taxiway, false, one, false, operational, false)
+                    || Loc(gate1, false, one, false, operational, false)
+                    || Loc(gate2, false, one, false, operational, false)
+                    || Mutex(runway, false) || Mutex(taxiway, false) || Mutex(gate1, false) || Mutex(gate2, false)
 
+            )
         )
     )
 );
