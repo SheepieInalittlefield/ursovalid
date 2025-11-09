@@ -1,6 +1,0 @@
-forall P:Plane .
-	[true* . receiveRequest(P, land)] mu X(runwayOoO: Bool = false, gate1OoO: Bool = false, gate2OoO: Bool = false ) . (
-		[getLocStatus(runway, out_of_order)] X(true, gate1OoO, gate2OoO)
-		|| [getLocStatus(gate1, out_of_order)] X(runwayOoO, true, gate2OoO)
-		|| [getLocStatus(gate2, out_of_order)]X(runwayOoO, gate1OoO, true)
-		|| <!(getLocStatus(runway, out_of_order) || getLocStatus(gate1, out_of_order) || getLocStatus(gate2, out_of_order))> X(runwayOoO, gate1OoO, gate2OoO))
