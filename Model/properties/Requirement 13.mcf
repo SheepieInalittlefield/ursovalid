@@ -5,12 +5,7 @@ forall P:Plane .
 nu Y(runwayBusy1: Bool = false, taxiwayBusy1: Bool = false, 
 gate1Busy1: Bool = false, gate2Busy1: Bool = false) . (
    [!(
-      assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
-      assign(taxiway, two) || assign(gate1, one) || assign(gate1, two) ||
-      assign(gate2, one) || assign(gate2, two) ||
-      unassign(runway, one) || unassign(runway, two) || unassign(taxiway, one) ||
-      unassign(taxiway, two) || unassign(gate1, one) || unassign(gate1, two) ||
-      unassign(gate2, one) ||unassign(gate2, two)
+      (exists P1:Plane, L1:Location . assign(L1, P1) || unassign(L1, P1))
    )] Y(runwayBusy1, taxiwayBusy1, gate1Busy1, gate2Busy1)
    && forall P2 : Plane . (
       [assign(runway, P2)]Y(true, taxiwayBusy1, gate1Busy1, gate2Busy1)
@@ -23,20 +18,7 @@ gate1Busy1: Bool = false, gate2Busy1: Bool = false) . (
       && [unassign(gate2, P2)]Y(runwayBusy1, taxiwayBusy1, gate1Busy1, false)
    )
    && [receiveRequest(P, leave)]
-   mu X(runwayBusy2: Bool = runwayBusy1, taxiwayBusy2: Bool = taxiwayBusy1, 
-   gate1Busy2: Bool = gate1Busy1, gate2Busy2: Bool = gate2Busy1) . (
-      ([!(sendResponse(P, hold) ||
-         assign(runway, one) || assign(runway, two) || assign(taxiway, one) ||
-         assign(taxiway, two) || unassign(runway, one) || unassign(runway, two) 
-         || unassign(taxiway, one) || unassign(taxiway, two) )]
-      X(runwayBusy2, taxiwayBusy2, gate1Busy2, gate2Busy2)
-      && forall P2 : Plane . (
-         [assign(runway, P2)]X(true, runwayBusy2, gate1Busy2, gate2Busy2)
-         && [assign(taxiway, P2)]X(runwayBusy2, true, gate1Busy2, gate2Busy2)
-         && [unassign(runway, P2)]X(false, taxiwayBusy2, gate1Busy2, gate2Busy2)
-         && [unassign(taxiway, P2)]X(runwayBusy2, false, gate1Busy2, gate2Busy2)
-      )
-      && <true>true)
-      || !val(runwayBusy2 || taxiwayBusy2)
-   )
+   ((val(runwayBusy1 || taxiwayBusy1)) => (
+      mu X. [!sendResponse(P, hold)]X && <true>true
+   ))
 )

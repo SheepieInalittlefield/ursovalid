@@ -1,5 +1,3 @@
-% <true* . start>true && [true* . start]<true*.stop.true*.start>true
-% <true* . start>true 
 mu X.([!start]X && <true>true)
 && [true* . start]mu X.([!stop]X && <true>true)
 && [true* . stop]mu X.([!start]X && <true>true)
