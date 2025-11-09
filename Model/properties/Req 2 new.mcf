@@ -1,0 +1,15 @@
+% For any sequence of states after a receiveRequest(P, land), assign must be possible. Unless runwayOoO or gate1 and gate2 OoO
+
+forall P:Plane . 
+	[true* . receiveRequest(P, land)] mu X(runwayOoO: Bool = false, gate1OoO: Bool = false, gate2OoO: Bool = false ) .
+		(
+		[!(assign(runway, P) || getLocStatus(runway, out_of_order) || getLocStatus(gate1, out_of_order) ||getLocStatus(gate2, out_of_order) || getLocStatus(runway, operational) || getLocStatus(gate1, operational) || getLocStatus(gate2, operational))] X(runwayOoO, gate1OoO, gate2OoO)
+		&& (<assign(runway, P)>true || !val(runwayOoO == true || (gate1OoO == true && gate2OoO == true)))
+		&& [getLocStatus(runway, out_of_order)]X(true, gate1OoO, gate2OoO)
+		&& [getLocStatus(gate1, out_of_order)]X(runwayOoO, true, gate2OoO)
+		&& [getLocStatus(gate2, out_of_order)]X(runwayOoO, gate1OoO, true)
+		&& [getLocStatus(runway, operational)]X(false, gate1OoO, gate2OoO)
+		&& [getLocStatus(gate1, operational)]X(runwayOoO, false, gate2OoO)
+		&& [getLocStatus(gate2, operational)]X(runwayOoO, gate1OoO, false)
+)
+	
